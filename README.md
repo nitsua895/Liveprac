@@ -19,7 +19,7 @@ What's built and working now, no hardware required:
 
 - **Session Builder** (`/build`) — create/edit named section sequences, each
   with a duration and a body zone (shown as a small highlighted-region icon).
-  Ships with 15-, 30-, and 60-minute generic Swedish-style defaults
+  Ships with 30- and 50-minute generic Swedish-style defaults
   (`src/state/defaultTemplates.ts`) — replace these with Shelby's actual
   sequence.
 - **Live Session** (`/session`) — the current section is a large depleting
