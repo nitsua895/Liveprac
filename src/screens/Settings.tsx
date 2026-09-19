@@ -105,6 +105,12 @@ function SpotifyCard() {
         </button>
       )}
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      <details className="mt-4 text-sm text-neutral-400">
+        <summary>Connection troubleshooting</summary>
+        <p className="mt-2">If Spotify reports a redirect mismatch, add this exact Redirect URI to this app in Spotify's developer dashboard, including the final slash:</p>
+        <code className="mt-2 block break-all text-accent-200">{spotify.redirectUri()}</code>
+        <p className="mt-2">Preview URLs need their own registered redirect. Use the production site to connect your production account.</p>
+      </details>
     </div>
   )
 }
