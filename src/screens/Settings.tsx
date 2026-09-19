@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import * as spotify from '../lib/spotify'
 import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
 
 function IntegrationCard({
@@ -57,6 +58,69 @@ function AccentPicker() {
   )
 }
 
+function SpotifyCard() {
+  const [clientId, setClientIdValue] = useState(() => spotify.getClientId())
+  const [connected, setConnected] = useState(() => spotify.isConnected())
+  const [error, setError] = useState<string | null>(null)
+
+  async function connect() {
+    try {
+      spotify.setClientId(clientId)
+      await spotify.beginAuth()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+      <div className="mb-1 flex items-center justify-between">
+        <p className="text-neutral-100">Spotify</p>
+        <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
+          {connected ? 'Connected' : 'Not connected'}
+        </span>
+      </div>
+      <p className="mb-4 text-sm text-neutral-500">
+        Controls whatever device Spotify is already playing on — the music comes out of the room's
+        speakers, not the iPad. Needs a Spotify app registered at developer.spotify.com with{' '}
+        <code className="text-neutral-400">{spotify.redirectUri()}</code> added as a redirect URI,
+        and a Premium account (Spotify blocks playback control on free accounts).
+      </p>
+
+      {connected ? (
+        <button
+          type="button"
+          onClick={() => {
+            spotify.disconnect()
+            setConnected(false)
+          }}
+          className="rounded-full border border-neutral-700 px-4 py-2 text-sm text-neutral-300"
+        >
+          Disconnect
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={clientId}
+            onChange={(e) => setClientIdValue(e.target.value)}
+            placeholder="Spotify Client ID"
+            className="min-w-64 flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
+          />
+          <button
+            type="button"
+            disabled={!clientId.trim()}
+            onClick={() => void connect()}
+            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
+          >
+            Connect
+          </button>
+        </div>
+      )}
+      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+    </div>
+  )
+}
+
 export function Settings() {
   return (
     <div className="flex flex-col gap-4">
@@ -69,11 +133,7 @@ export function Settings() {
         status="Phase 2"
         detail="iOS Safari can't talk to Bluetooth hardware directly. Pairing needs this app wrapped in a native shell (Capacitor + BLE plugin) once the dial/button hardware is picked."
       />
-      <IntegrationCard
-        title="Spotify"
-        status="Phase 3"
-        detail="Playback control via Spotify's Web API is feasible client-side (PKCE flow), not yet connected."
-      />
+      <SpotifyCard />
       <IntegrationCard
         title="ClinicSense / MassageBook"
         status="No public API"

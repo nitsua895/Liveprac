@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BodyZoneDiagram } from '../components/BodyZoneDiagram'
-import { NextUpCard } from '../components/NextUpCard'
+import { NowPlayingBar } from '../components/NowPlayingBar'
 import { SectionListEditor } from '../components/SectionListEditor'
 import { SectionTimeline } from '../components/SectionTimeline'
 import { TimerDial } from '../components/TimerDial'
@@ -31,6 +31,7 @@ export function LiveSession() {
   const navigate = useNavigate()
   const [now, setNow] = useState(() => Date.now())
   const [editingPlan, setEditingPlan] = useState(false)
+  const [showMore, setShowMore] = useState(false)
   const cuedSectionRef = useRef<number | null>(null)
   const warnedSectionRef = useRef<number | null>(null)
 
@@ -203,14 +204,37 @@ export function LiveSession() {
           <PressureReadout net={netPressure} />
         </TimerDial>
 
-        <div className="flex flex-col items-center gap-3">
-          <NextUpCard section={nextSection} />
+        {/* Controls live beside the dial: the two used mid-session are big and
+            near the timer, the rest are tucked behind "More". */}
+        <div className="flex flex-col items-stretch gap-3">
+          <button
+            type="button"
+            onClick={advanceSection}
+            disabled={!nextSection}
+            className="rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-neutral-950 disabled:opacity-30"
+          >
+            Next Section
+          </button>
+          <button
+            type="button"
+            onClick={togglePause}
+            className="rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
+          >
+            {activeSession.paused ? 'Resume' : 'Pause'}
+          </button>
           <button
             type="button"
             onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-            className="rounded-full border border-neutral-700 px-4 py-1.5 text-base text-neutral-400"
+            className="rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
             +2 min
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="text-sm text-neutral-600"
+          >
+            {showMore ? 'Less' : 'More'}
           </button>
         </div>
       </div>
@@ -221,50 +245,38 @@ export function LiveSession() {
         events={sessionEvents}
       />
 
-      <div className="flex flex-wrap justify-center gap-3">
-        <button
-          type="button"
-          onClick={goToPreviousSection}
-          disabled={activeSession.currentSectionIndex === 0}
-          className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400 disabled:opacity-30"
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={togglePause}
-          className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400"
-        >
-          {activeSession.paused ? 'Resume' : 'Pause'}
-        </button>
-        <button
-          type="button"
-          onClick={advanceSection}
-          disabled={!nextSection}
-          className="rounded-full bg-accent-500 px-6 py-2.5 font-medium text-neutral-950 disabled:opacity-30"
-        >
-          Next Section
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditingPlan(true)}
-          className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400"
-        >
-          Edit Plan
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            endSession()
-            navigate('/')
-          }}
-          className="rounded-full border border-red-900/60 px-5 py-2.5 text-red-400/80"
-        >
-          End
-        </button>
-      </div>
+      {showMore && (
+        <div className="flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={goToPreviousSection}
+            disabled={activeSession.currentSectionIndex === 0}
+            className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400 disabled:opacity-30"
+          >
+            Previous Section
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingPlan(true)}
+            className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400"
+          >
+            Edit Plan
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              endSession()
+              navigate('/')
+            }}
+            className="rounded-full border border-red-900/60 px-5 py-2.5 text-red-400/80"
+          >
+            End Session
+          </button>
+          <RemoteSimulator />
+        </div>
+      )}
 
-      <RemoteSimulator />
+      <NowPlayingBar />
     </div>
   )
 }
