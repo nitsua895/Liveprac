@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useAppState } from '../state/AppStateContext'
 
-/** Feedback is hands-free: eight seconds to read, then a gentle one-second fade.
+/** Feedback is hands-free: eleven seconds to read, then a gentle one-second fade.
  * Each cue expires independently so a new opposing request never waits in a queue.
  * The event log and dial markers remain after the transient glow disappears. */
 export function AmbientGlow() {
@@ -13,7 +13,7 @@ export function AmbientGlow() {
 
   useEffect(() => {
     const timers = ambientCues.map((cue) =>
-      setTimeout(() => dismiss.current(cue.id), Math.max(0, cue.createdAt + 9000 - Date.now())),
+      setTimeout(() => dismiss.current(cue.id), Math.max(0, cue.createdAt + 12000 - Date.now())),
     )
     return () => timers.forEach(clearTimeout)
     // The signature changes only on a new or repeated cue, not session clock ticks.
@@ -24,7 +24,7 @@ export function AmbientGlow() {
   return (
     <div key={`${current.id}:${current.createdAt}:${current.count}`}
       className="cue-hold pointer-events-none fixed inset-0 z-40" data-tone={current.tone}>
-      <div className="ambient-vignette absolute inset-0" />
+      <div className="cue-glow ambient-vignette absolute inset-0" />
       <div className="ambient-vignette-flash absolute inset-0" />
       <div className="cue-banner" role="status" aria-live="polite" aria-atomic="true">
         <span>{current.message}</span>

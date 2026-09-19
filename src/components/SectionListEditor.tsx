@@ -3,31 +3,118 @@ import { BODY_ZONE_LABELS, BODY_ZONES } from '../lib/bodyZones'
 import type { SectionTemplate } from '../types'
 import { BodyZoneDiagram } from './BodyZoneDiagram'
 
+const STEP_SEC = 60
+const MIN_SEC = 60
+
 export function SectionListEditor({
   sections,
   onChange,
+  preserveTotal = false,
 }: {
   sections: SectionTemplate[]
   onChange: (sections: SectionTemplate[]) => void
+  /** Live sessions keep their appointment end fixed while allocations change. */
+  preserveTotal?: boolean
 }) {
   function updateSection(index: number, patch: Partial<SectionTemplate>) {
-    onChange(sections.map((s, i) => (i === index ? { ...s, ...patch } : s)))
+    onChange(sections.map((section, sectionIndex) =>
+      sectionIndex === index ? { ...section, ...patch } : section,
+    ))
+  }
+
+  function changeDuration(index: number, deltaSec: number) {
+    const next = sections.map((section) => ({ ...section }))
+    if (!preserveTotal) {
+      next[index].durationSec = Math.max(MIN_SEC, next[index].durationSec + deltaSec)
+      onChange(next)
+      return
+    }
+
+    if (deltaSec < 0) {
+      const released = Math.min(-deltaSec, Math.max(0, next[index].durationSec - MIN_SEC))
+      if (!released) return
+      next[index].durationSec -= released
+      const receiver = next[index + 1] ?? next[index - 1]
+      if (receiver) receiver.durationSec += released
+      onChange(next)
+      return
+    }
+
+    let needed = deltaSec
+    const donorOrder = [
+      ...next.map((_, donorIndex) => donorIndex).slice(index + 1),
+      ...next.map((_, donorIndex) => donorIndex).slice(0, index).reverse(),
+    ]
+    for (const donorIndex of donorOrder) {
+      const available = Math.max(0, next[donorIndex].durationSec - MIN_SEC)
+      const taken = Math.min(available, needed)
+      next[donorIndex].durationSec -= taken
+      needed -= taken
+      if (!needed) break
+    }
+    const received = deltaSec - needed
+    if (!received) return
+    next[index].durationSec += received
+    onChange(next)
   }
 
   function addSection() {
-    onChange([...sections, { id: newSectionId(), name: 'New Section', durationSec: 5 * 60, bodyZone: 'none' }])
+    const next = sections.map((section) => ({ ...section }))
+    const durationSec = preserveTotal ? MIN_SEC : 5 * 60
+    if (preserveTotal) {
+      const donor = [...next].reverse().find((section) => section.durationSec >= MIN_SEC * 2)
+      if (!donor) return
+      donor.durationSec -= durationSec
+    }
+    next.push({ id: newSectionId(), name: 'New Section', durationSec, bodyZone: 'none' })
+    onChange(next)
   }
 
   function removeSection(index: number) {
-    onChange(sections.filter((_, i) => i !== index))
+    if (sections.length === 1) return
+    const next = sections.map((section) => ({ ...section }))
+    if (preserveTotal) {
+      const receiverIndex = index + 1 < next.length ? index + 1 : index - 1
+      next[receiverIndex].durationSec += next[index].durationSec
+    }
+    onChange(next.filter((_, sectionIndex) => sectionIndex !== index))
   }
 
-  function moveSection(index: number, direction: -1 | 1) {
-    const target = index + direction
-    if (target < 0 || target >= sections.length) return
-    const next = [...sections]
-    ;[next[index], next[target]] = [next[target], next[index]]
+  function moveSection(index: number, target: number, source = sections) {
+    if (target < 0 || target >= source.length || index === target) return source
+    const next = [...source]
+    const [moved] = next.splice(index, 1)
+    next.splice(target, 0, moved)
     onChange(next)
+    return next
+  }
+
+  function beginDrag(index: number, event: React.PointerEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    let currentIndex = index
+    let working = sections.map((section) => ({ ...section }))
+    const pointerId = event.pointerId
+    event.currentTarget.setPointerCapture(pointerId)
+
+    function move(pointerEvent: PointerEvent) {
+      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-section-row]'))
+      let target = rows.findIndex((row) => pointerEvent.clientY < row.getBoundingClientRect().bottom)
+      if (target < 0) target = rows.length - 1
+      if (target !== currentIndex) {
+        working = moveSection(currentIndex, target, working)
+        currentIndex = target
+      }
+    }
+
+    function finish() {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+    }
+
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish, { once: true })
+    window.addEventListener('pointercancel', finish, { once: true })
   }
 
   return (
@@ -35,54 +122,96 @@ export function SectionListEditor({
       {sections.map((section, index) => (
         <div
           key={section.id}
-          className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
+          data-section-row
+          className="grid grid-cols-[auto_auto_minmax(10rem,1fr)_auto_auto] items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
         >
-          <BodyZoneDiagram activeZone={section.bodyZone} size={40} />
-          <input
-            aria-label="Section name"
-            value={section.name}
-            onChange={(e) => updateSection(index, { name: e.target.value })}
-            className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-neutral-200 outline-none focus:border-accent-500/50"
-          />
-          <select
-            aria-label="Body zone"
-            value={section.bodyZone}
-            onChange={(e) => updateSection(index, { bodyZone: e.target.value as SectionTemplate['bodyZone'] })}
-            className="rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-sm text-neutral-300 outline-none focus:border-accent-500/50"
+          <button
+            type="button"
+            aria-label={`Drag ${section.name} to reorder`}
+            onPointerDown={(event) => beginDrag(index, event)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowUp') moveSection(index, index - 1)
+              if (event.key === 'ArrowDown') moveSection(index, index + 1)
+            }}
+            className="cursor-grab touch-none px-2 text-2xl tracking-[-0.18em] text-neutral-500 active:cursor-grabbing"
           >
-            {BODY_ZONES.map((zone) => (
-              <option key={zone} value={zone}>
-                {BODY_ZONE_LABELS[zone]}
-              </option>
-            ))}
-          </select>
-          <input
-            aria-label="Section duration in minutes"
-            type="number"
-            min={1}
-            value={Math.round(section.durationSec / 60)}
-            onChange={(e) => updateSection(index, { durationSec: Math.max(1, Number(e.target.value) || 1) * 60 })}
-            className="w-20 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-center text-neutral-200 outline-none focus:border-accent-500/50"
-          />
-          <span className="text-sm text-neutral-500">min</span>
-          <button type="button" aria-label="Move section up" disabled={index === 0} onClick={() => moveSection(index, -1)} className="px-2 text-neutral-400">
-            ↑
+            <svg viewBox="0 0 18 24" width="18" height="24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="5" r="1.5" /><circle cx="13" cy="5" r="1.5" />
+              <circle cx="5" cy="12" r="1.5" /><circle cx="13" cy="12" r="1.5" />
+              <circle cx="5" cy="19" r="1.5" /><circle cx="13" cy="19" r="1.5" />
+            </svg>
           </button>
-          <button type="button" aria-label="Move section down" disabled={index === sections.length - 1} onClick={() => moveSection(index, 1)} className="px-2 text-neutral-400">
-            ↓
-          </button>
-          <button type="button" aria-label="Remove section" disabled={sections.length === 1} onClick={() => removeSection(index)} className="px-2 text-red-400/80">
-            ✕
+          <BodyZoneDiagram activeZone={section.bodyZone} size={34} />
+          <div className="min-w-0">
+            <input
+              aria-label="Section name"
+              value={section.name}
+              onChange={(event) => updateSection(index, { name: event.target.value })}
+              className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-neutral-200 outline-none focus:border-accent-500/50"
+            />
+            <select
+              aria-label="Body zone"
+              value={section.bodyZone}
+              onChange={(event) => updateSection(index, { bodyZone: event.target.value as SectionTemplate['bodyZone'] })}
+              className="mt-2 w-full rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-sm text-neutral-300 outline-none focus:border-accent-500/50"
+            >
+              {BODY_ZONES.map((zone) => (
+                <option key={zone} value={zone}>{BODY_ZONE_LABELS[zone]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center rounded-full border border-neutral-700 bg-neutral-950">
+            <button
+              type="button"
+              aria-label={`Remove one minute from ${section.name}`}
+              disabled={section.durationSec <= MIN_SEC}
+              onClick={() => changeDuration(index, -STEP_SEC)}
+              className="w-11 rounded-full text-xl text-neutral-300"
+            >
+              −
+            </button>
+            <span className="min-w-20 text-center font-mono text-base tabular-nums text-neutral-100">
+              {formatDuration(section.durationSec)}
+            </span>
+            <button
+              type="button"
+              aria-label={`Add one minute to ${section.name}`}
+              onClick={() => changeDuration(index, STEP_SEC)}
+              className="w-11 rounded-full text-xl text-neutral-300"
+            >
+              +
+            </button>
+          </div>
+          <button
+            type="button"
+            aria-label={`Remove ${section.name}`}
+            disabled={sections.length === 1}
+            onClick={() => removeSection(index)}
+            className="w-11 rounded-full text-xl text-red-300/80"
+          >
+            ×
           </button>
         </div>
       ))}
       <button
         type="button"
         onClick={addSection}
-        className="rounded-xl border border-dashed border-neutral-800 py-3 text-sm text-neutral-500"
+        className="rounded-xl border border-dashed border-neutral-700 py-3 text-sm text-neutral-400"
       >
         + Add section
       </button>
+      {preserveTotal && (
+        <p className="text-center text-xs text-neutral-500">
+          Time added here is automatically borrowed from the following sections.
+        </p>
+      )}
     </div>
   )
+}
+
+function formatDuration(seconds: number) {
+  const rounded = Math.round(seconds)
+  const minutes = Math.floor(rounded / 60)
+  const remainder = rounded % 60
+  return remainder ? `${minutes}:${String(remainder).padStart(2, '0')}` : `${minutes} min`
 }

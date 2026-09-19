@@ -1,4 +1,4 @@
-import type { PreferenceEvent, SectionTemplate } from '../types'
+import type { SectionTemplate } from '../types'
 
 /**
  * A deliberately quiet overview. Body zones and preference markers belong to
@@ -7,16 +7,13 @@ import type { PreferenceEvent, SectionTemplate } from '../types'
 export function SectionTimeline({
   sections,
   currentIndex,
-  events = [],
 }: {
   sections: SectionTemplate[]
   currentIndex: number
-  events?: PreferenceEvent[]
 }) {
   return (
     <div className="flex w-full gap-2">
       {sections.map((section, index) => {
-        const signalCount = events.filter((e) => e.sectionId === section.id).length
         const isCurrent = index === currentIndex
         const isNext = index === currentIndex + 1
         return (
@@ -46,12 +43,19 @@ export function SectionTimeline({
             >
               {section.name}
             </p>
-            <span className="mt-1 h-3 text-center text-[10px] uppercase tracking-wider text-neutral-700">
-              {isCurrent ? 'Now' : isNext ? 'Next' : signalCount > 0 ? `${signalCount} signals` : ''}
+            <span className="mt-1 h-3 text-center font-mono text-[11px] tabular-nums text-neutral-500">
+              {formatAllocation(section.durationSec)}
             </span>
           </div>
         )
       })}
     </div>
   )
+}
+
+function formatAllocation(seconds: number) {
+  const rounded = Math.max(0, Math.round(seconds))
+  const minutes = Math.floor(rounded / 60)
+  const remainder = rounded % 60
+  return remainder ? `${minutes}:${String(remainder).padStart(2, '0')}` : `${minutes}m`
 }

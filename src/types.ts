@@ -49,6 +49,8 @@ export interface ActiveSession {
   /** Snapshot of the template's sections when the session started — edits here (Edit Plan, "+time") apply only to this run. */
   sections: SectionTemplate[]
   startedAt: number
+  /** Fixed appointment length. Section edits and pauses redistribute within it. */
+  plannedDurationSec?: number
   currentSectionIndex: number
   sectionStartedAt: number
   paused: boolean
