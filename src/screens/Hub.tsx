@@ -20,7 +20,7 @@ export function Hub() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8">
       <header className="flex items-baseline justify-between">
         <h1 className="text-2xl font-light text-neutral-200">Liveprac</h1>
         <span className="text-sm text-neutral-600">
@@ -55,8 +55,8 @@ export function Hub() {
       </section>
 
       {pickingTemplateId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
-          <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-6">
+          <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
             <h3 className="mb-4 text-lg text-neutral-100">Who is this session for?</h3>
             <div className="flex flex-col gap-2">
               <button
@@ -77,7 +77,7 @@ export function Hub() {
                 </button>
               ))}
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <input
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
