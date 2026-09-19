@@ -1,32 +1,30 @@
 import type { BodyZone } from '../types'
 
 /**
- * Abstract top-down view of a person on a table — not anatomical, just
- * enough shape per zone to be recognizable at a glance. "Legs (Back)" and
- * "Legs (Front)" both highlight the same leg shapes; the diagram can't show
- * which side of the client is up, only which region is being worked.
+ * Calm, symmetrical table-view silhouette. It stays intentionally diagrammatic
+ * but uses human proportions and rounded joins so it reads cleanly at dial size.
  */
 const ZONES: { zone: BodyZone; path: string }[] = [
-  { zone: 'head_scalp', path: 'M 100 14 a 22 22 0 1 0 0.01 0' },
-  { zone: 'neck_shoulders', path: 'M 62 40 h 76 a 8 8 0 0 1 8 8 v 10 h -92 v -10 a 8 8 0 0 1 8 -8 z' },
-  { zone: 'back', path: 'M 70 60 h 60 v 90 a 30 30 0 0 1 -60 0 z' },
+  { zone: 'head_scalp', path: 'M100 10a21 21 0 1 1 0 42 21 21 0 0 1 0-42Z' },
+  { zone: 'neck_shoulders', path: 'M86 52h28l27 13-7 17-25-10H91L66 82l-7-17 27-13Z' },
+  { zone: 'back', path: 'M82 70q18-8 36 0l8 77q-26 19-52 0l8-77Z' },
   {
     zone: 'arms_hands',
     path:
-      'M 62 60 h -14 a 8 8 0 0 0 -8 8 v 80 a 8 8 0 0 0 8 8 h 10 a 8 8 0 0 0 8 -8 v -88 z ' +
-      'M 138 60 h 14 a 8 8 0 0 1 8 8 v 80 a 8 8 0 0 1 -8 8 h -10 a 8 8 0 0 1 -8 -8 v -88 z',
+      'M62 68q-9 1-12 10l-17 68q-2 10 8 13 10 2 13-8l18-69-10-14Z ' +
+      'M138 68q9 1 12 10l17 68q2 10-8 13-10 2-13-8l-18-69 10-14Z',
   },
   {
     zone: 'legs',
     path:
-      'M 74 150 h 22 v 90 a 11 11 0 0 1 -22 0 z ' +
-      'M 104 150 h 22 v 90 a 11 11 0 0 1 -22 0 z',
+      'M75 145q12 7 23 4l-3 91q-1 12-12 12-12 0-12-12l4-95Z ' +
+      'M125 145q-12 7-23 4l3 91q1 12 12 12 12 0 12-12l-4-95Z',
   },
   {
     zone: 'feet',
     path:
-      'M 74 240 h 22 v 22 a 11 11 0 0 1 -22 0 z ' +
-      'M 104 240 h 22 v 22 a 11 11 0 0 1 -22 0 z',
+      'M71 239h24l-1 25q-1 11-13 11-13 0-12-12l2-24Z ' +
+      'M105 239h24l2 24q1 12-12 12-12 0-13-11l-1-25Z',
   },
 ]
 
@@ -41,10 +39,10 @@ export function BodyZoneDiagram({
 }) {
   return (
     <svg
-      viewBox="0 0 200 280"
+      viewBox="24 4 152 276"
       width={size}
       height={(size * 280) / 200}
-      className="overflow-visible"
+      className="overflow-visible drop-shadow-[0_0_12px_rgba(0,0,0,0.2)]"
     >
       {ZONES.map(({ zone, path }) => {
         const isActive = zone === activeZone
@@ -60,7 +58,8 @@ export function BodyZoneDiagram({
                   ? 'fill-accent-500/15 stroke-accent-500/40'
                   : 'fill-neutral-800/60 stroke-neutral-700'
             }`}
-            strokeWidth={1.5}
+            strokeWidth={1.35}
+            strokeLinejoin="round"
           />
         )
       })}
