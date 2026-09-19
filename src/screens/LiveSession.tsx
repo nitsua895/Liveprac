@@ -162,7 +162,7 @@ export function LiveSession() {
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:gap-5">
+    <div className="session-page flex flex-col gap-3 sm:gap-5">
       <header className="flex min-w-0 items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm text-neutral-500 sm:text-base">
           {template.name}
@@ -194,17 +194,17 @@ export function LiveSession() {
               {section.name}
             </span>
             <span
-              className={`mt-1 font-mono text-6xl tabular-nums ${
+              className={`session-primary-time mt-1 font-mono tabular-nums ${
                 displayedSectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
               }`}
             >
               {displayedSectionRemainingSec < 0 ? '+' : ''}
               {formatClock(Math.abs(displayedSectionRemainingSec))}
             </span>
-            <div className="mt-2 flex items-center gap-2 text-sm text-neutral-400">
-              <span>Session left</span>
+            <div className="session-remaining mt-2 flex flex-col items-center gap-0.5 text-neutral-400">
+              <span className="text-[10px] font-medium uppercase tracking-[0.12em]">Session</span>
               <span
-                className={`font-mono text-2xl tabular-nums ${
+                className={`font-mono text-xl leading-none tabular-nums sm:text-2xl ${
                   sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
                 }`}
               >

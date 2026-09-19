@@ -188,9 +188,13 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
+}
+
+body,
+#root,
+.app-shell {
   min-height: 100dvh;
 }
 
@@ -203,6 +207,8 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
     env(safe-area-inset-left);
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Range inputs shared by the playback timeline and device volume. The filled
@@ -283,6 +289,12 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .app-nav {
   padding-bottom: env(safe-area-inset-bottom);
 }
+.session-page {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.session-primary-time {
+  font-size: clamp(2.75rem, 9vw, 3.75rem);
+}
 .cue-banner {
   position: absolute;
   top: calc(env(safe-area-inset-top) + 8px);
@@ -340,8 +352,25 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
+  html,
+  body,
+  #root,
+  .app-shell {
+    height: auto;
+    min-height: 100%;
+  }
+  body {
+    overflow-y: scroll;
+  }
+  .session-page {
+    min-height: max-content;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
   .timer-dial {
     width: min(68vh, 300px) !important;
+  }
+  .session-primary-time {
+    font-size: 2.75rem;
   }
   .session-stage {
     gap: 0.75rem;

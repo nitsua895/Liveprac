@@ -14,7 +14,7 @@ export function HubShell() {
   const inSession = useLocation().pathname === '/session'
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+    <div className="app-shell min-h-screen bg-neutral-950 text-neutral-100">
       <AmbientGlow />
       <main
         className={`mx-auto ${

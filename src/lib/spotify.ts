@@ -49,6 +49,7 @@ export interface NowPlayingState {
   supportsVolume: boolean
   deviceId: string | null
   deviceName: string | null
+  deviceType: string | null
   shuffle: boolean
   repeat: 'off' | 'track' | 'context'
   /** Set when Spotify rejects a command, e.g. no active device or not Premium. */
@@ -69,6 +70,7 @@ export const EMPTY_STATE: NowPlayingState = {
   supportsVolume: false,
   deviceId: null,
   deviceName: null,
+  deviceType: null,
   shuffle: false,
   repeat: 'off',
   error: null,
@@ -259,6 +261,7 @@ export async function fetchState(): Promise<NowPlayingState> {
     supportsVolume: Boolean(json.device?.supports_volume),
     deviceId: json.device?.id ?? null,
     deviceName: json.device?.name ?? null,
+    deviceType: json.device?.type ?? null,
     shuffle: Boolean(json.shuffle_state),
     repeat: json.repeat_state ?? 'off',
     error: null,
@@ -266,8 +269,13 @@ export async function fetchState(): Promise<NowPlayingState> {
 }
 
 /** Returns an error message, or null on success. */
-async function command(path: string, method: string): Promise<string | null> {
-  const res = await call(path, { method })
+async function command(path: string, method: string, body?: unknown): Promise<string | null> {
+  const res = await call(path, {
+    method,
+    ...(body === undefined
+      ? {}
+      : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  })
   if (!res) return 'Not connected'
   if (res.status === 404) return 'No active Spotify device — start playback on a speaker or phone first'
   if (!res.ok && res.status !== 204) {
@@ -292,6 +300,34 @@ export const setVolume = (percent: number, deviceId?: string | null) => {
   if (deviceId) query.set('device_id', deviceId)
   return command(`/me/player/volume?${query}`, 'PUT')
 }
+export interface SpotifyDevice {
+  id: string | null
+  isActive: boolean
+  isRestricted: boolean
+  name: string
+  type: string
+  volumePercent: number | null
+  supportsVolume: boolean
+}
+
+export async function fetchDevices(): Promise<SpotifyDevice[]> {
+  if (!isConnected()) return []
+  const res = await call('/me/player/devices')
+  if (!res?.ok) return []
+  const json = await res.json() as { devices?: Array<Record<string, unknown>> }
+  return (json.devices ?? []).map((device) => ({
+    id: typeof device.id === 'string' ? device.id : null,
+    isActive: Boolean(device.is_active),
+    isRestricted: Boolean(device.is_restricted),
+    name: typeof device.name === 'string' ? device.name : 'Spotify device',
+    type: typeof device.type === 'string' ? device.type : 'device',
+    volumePercent: typeof device.volume_percent === 'number' ? device.volume_percent : null,
+    supportsVolume: Boolean(device.supports_volume),
+  }))
+}
+
+export const transferPlayback = (deviceId: string, play: boolean) =>
+  command('/me/player', 'PUT', { device_ids: [deviceId], play })
 export const seek = (positionMs: number) =>
   command(`/me/player/seek?position_ms=${Math.max(0, Math.round(positionMs))}`, 'PUT')
 export const setShuffle = (enabled: boolean) =>
