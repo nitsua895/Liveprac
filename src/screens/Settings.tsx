@@ -13,7 +13,7 @@ function IntegrationCard({
 }) {
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-neutral-100">{title}</p>
         <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
           {status}
@@ -33,7 +33,7 @@ function AccentPicker() {
       <p className="mb-4 text-sm text-neutral-500">
         Applies everywhere (dials, glow, highlights) — try them in the actual treatment room lighting.
       </p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {ACCENT_THEMES.map((theme) => (
           <button
             key={theme.value}
@@ -72,7 +72,7 @@ function SpotifyCard() {
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-neutral-100">Spotify</p>
         <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
           {connected ? 'Connected' : 'Not connected'}
