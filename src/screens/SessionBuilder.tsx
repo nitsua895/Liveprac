@@ -52,7 +52,7 @@ export function SessionBuilder() {
               </button>
               <button
                 type="button"
-                onClick={() => deleteTemplate(template.id)}
+                onClick={() => { if (window.confirm('Delete this session template?')) deleteTemplate(template.id) }}
                 className="rounded-lg border border-red-900/60 px-3 py-1.5 text-sm text-red-400/80"
               >
                 Delete
@@ -92,6 +92,7 @@ function TemplateEditor({ template, onDone }: { template: SessionTemplate; onDon
         </button>
         <button
           type="button"
+          disabled={!draft.name.trim() || !draft.sections.length || draft.sections.some((section) => !section.name.trim() || section.durationSec <= 0)}
           onClick={() => {
             saveTemplate(draft)
             onDone()

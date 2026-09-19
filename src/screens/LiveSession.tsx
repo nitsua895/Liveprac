@@ -34,6 +34,10 @@ export function LiveSession() {
   const [showMore, setShowMore] = useState(false)
   const cuedSectionRef = useRef<number | null>(null)
   const warnedSectionRef = useRef<number | null>(null)
+  useEffect(() => {
+    cuedSectionRef.current = null
+    warnedSectionRef.current = null
+  }, [activeSession?.instanceId, activeSession?.currentSectionIndex])
 
   const template = activeSession ? templates.find((t) => t.id === activeSession.templateId) : undefined
   const section = activeSession ? activeSession.sections[activeSession.currentSectionIndex] : undefined
@@ -62,7 +66,7 @@ export function LiveSession() {
 
   // Heads-up while there's still time to finish the stroke, not just at zero.
   useEffect(() => {
-    if (!activeSession || !section) return
+    if (!activeSession || activeSession.paused || !section) return
     if (sectionRemainingSec > WARN_AHEAD_SEC || sectionRemainingSec <= 0) return
     if (section.durationSec <= WARN_AHEAD_SEC * 1.5) return
     if (warnedSectionRef.current === activeSession.currentSectionIndex) return
@@ -75,7 +79,7 @@ export function LiveSession() {
   }, [activeSession, section, sectionRemainingSec, nextSection, pushAmbientCue])
 
   useEffect(() => {
-    if (!activeSession || sectionRemainingSec > 0) return
+    if (!activeSession || activeSession.paused || sectionRemainingSec > 0) return
     if (cuedSectionRef.current === activeSession.currentSectionIndex) return
     cuedSectionRef.current = activeSession.currentSectionIndex
     pushAmbientCue({
@@ -156,64 +160,79 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <span className="font-mono text-2xl tabular-nums text-neutral-500">
             {new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm uppercase tracking-wide text-neutral-600">Session</span>
-            <span
-              className={`font-mono text-2xl tabular-nums ${
-                sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
-              }`}
-            >
-              {sessionRemainingSec < 0 ? '+' : ''}
-              {formatClock(Math.abs(sessionRemainingSec))}
-            </span>
-          </div>
         </div>
       </header>
 
-      {/* Body zone beside the dial rather than stacked above it: fills the
-          landscape screen and keeps everything above the fold. */}
       <div
         key={activeSession.currentSectionIndex}
-        className="animate-section-enter grid grid-cols-[1fr_auto_1fr] items-center gap-6"
+        className="session-stage grid items-center gap-6"
       >
-        <div className="flex flex-col items-center gap-3">
-          <BodyZoneDiagram activeZone={section.bodyZone} size={110} />
-          <p className="text-center text-2xl uppercase tracking-widest text-accent-400">
-            {section.name}
-          </p>
-        </div>
-
-        <TimerDial
-          sizePx={300}
-          remainingFraction={sectionRemainingSec / section.durationSec}
-          over={sectionRemainingSec < 0}
-          strokeWidth={12}
-          markers={dialMarkers}
-        >
-          <span
-            className={`font-mono text-7xl tabular-nums ${
-              sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
-            }`}
+        <div className="flex flex-col items-center">
+          <TimerDial
+            sizePx={350}
+            remainingFraction={sectionRemainingSec / section.durationSec}
+            sessionFraction={sessionRemainingSec / totalDuration}
+            over={sectionRemainingSec < 0}
+            sessionOver={sessionRemainingSec < 0}
+            strokeWidth={12}
+            markers={dialMarkers}
           >
-            {formatClock(Math.abs(sectionRemainingSec))}
-          </span>
-          <PressureReadout net={netPressure} />
-        </TimerDial>
+            <BodyZoneDiagram activeZone={section.bodyZone} size={42} />
+            <span className="mt-1 max-w-60 text-center text-lg font-semibold text-accent-200">
+              {section.name}
+            </span>
+            <span
+              className={`mt-1 font-mono text-6xl tabular-nums ${
+                sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
+              }`}
+            >
+              {sectionRemainingSec < 0 ? '+' : ''}
+              {formatClock(Math.abs(sectionRemainingSec))}
+            </span>
+            <div className="mt-2 flex items-center gap-2 text-sm text-neutral-400">
+              <span>Session left</span>
+              <span
+                className={`font-mono text-2xl tabular-nums ${
+                  sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
+                }`}
+              >
+                {sessionRemainingSec < 0 ? '+' : ''}
+                {formatClock(Math.abs(sessionRemainingSec))}
+              </span>
+            </div>
+          </TimerDial>
+          <div className="flex h-12 items-center justify-center">
+            <PressureReadout net={netPressure} />
+          </div>
+        </div>
 
         {/* Controls live beside the dial: the two used mid-session are big and
             near the timer, the rest are tucked behind "More". */}
         <div className="flex flex-col items-stretch gap-3">
+          <div className="mb-2 min-h-24 rounded-xl border border-neutral-800 p-4">
+            <p className="text-sm text-neutral-400">
+              {activeSession.paused ? 'Paused' : sectionRemainingSec <= 0 ? 'Section complete' : sectionRemainingSec <= 60 ? 'Prepare to change' : 'Up next'}
+            </p>
+            <p className="mt-1 text-2xl font-medium text-accent-200">{nextSection?.name ?? 'Finish session'}</p>
+            <p className="mt-1 text-sm text-neutral-400">Outer ring: session · Inner: section</p>
+          </div>
           <button
             type="button"
-            onClick={advanceSection}
-            disabled={!nextSection}
-            className="rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-neutral-950 disabled:opacity-30"
+            onClick={() => {
+              if (nextSection) advanceSection()
+              else if (window.confirm('Finish this session? Recorded feedback will be kept.')) {
+                endSession()
+                navigate('/')
+              }
+            }}
+            disabled={Boolean(nextSection) && activeSession.paused}
+            className="rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
           >
-            Next Section
+            {nextSection ? 'Next Section' : 'Finish Session'}
           </button>
           <button
             type="button"
@@ -232,6 +251,7 @@ export function LiveSession() {
           <button
             type="button"
             onClick={() => setShowMore((v) => !v)}
+            aria-expanded={showMore}
             className="text-sm text-neutral-600"
           >
             {showMore ? 'Less' : 'More'}
@@ -265,6 +285,7 @@ export function LiveSession() {
           <button
             type="button"
             onClick={() => {
+              if (!window.confirm('End this session? Recorded feedback will be kept.')) return
               endSession()
               navigate('/')
             }}
@@ -276,7 +297,7 @@ export function LiveSession() {
         </div>
       )}
 
-      <NowPlayingBar />
+      <NowPlayingBar compact />
     </div>
   )
 }
@@ -286,12 +307,12 @@ function PressureReadout({ net }: { net: number }) {
   const up = net > 0
   return (
     <span
-      className={`mt-1 font-mono text-3xl font-semibold tabular-nums ${
+      className={`mt-1 text-center font-mono text-lg font-semibold tabular-nums ${
         up ? 'text-orange-300' : 'text-sky-300'
       }`}
     >
       {up ? '+' : ''}
-      {net} pressure
+      {net} pressure requests · this section
     </span>
   )
 }

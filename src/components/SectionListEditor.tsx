@@ -35,15 +35,17 @@ export function SectionListEditor({
       {sections.map((section, index) => (
         <div
           key={section.id}
-          className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
+          className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
         >
           <BodyZoneDiagram activeZone={section.bodyZone} size={40} />
           <input
+            aria-label="Section name"
             value={section.name}
             onChange={(e) => updateSection(index, { name: e.target.value })}
             className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-neutral-200 outline-none focus:border-accent-500/50"
           />
           <select
+            aria-label="Body zone"
             value={section.bodyZone}
             onChange={(e) => updateSection(index, { bodyZone: e.target.value as SectionTemplate['bodyZone'] })}
             className="rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-sm text-neutral-300 outline-none focus:border-accent-500/50"
@@ -55,20 +57,21 @@ export function SectionListEditor({
             ))}
           </select>
           <input
+            aria-label="Section duration in minutes"
             type="number"
             min={1}
             value={Math.round(section.durationSec / 60)}
-            onChange={(e) => updateSection(index, { durationSec: Number(e.target.value) * 60 })}
+            onChange={(e) => updateSection(index, { durationSec: Math.max(1, Number(e.target.value) || 1) * 60 })}
             className="w-20 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-center text-neutral-200 outline-none focus:border-accent-500/50"
           />
           <span className="text-sm text-neutral-500">min</span>
-          <button type="button" onClick={() => moveSection(index, -1)} className="px-2 text-neutral-500">
+          <button type="button" aria-label="Move section up" disabled={index === 0} onClick={() => moveSection(index, -1)} className="px-2 text-neutral-400">
             ↑
           </button>
-          <button type="button" onClick={() => moveSection(index, 1)} className="px-2 text-neutral-500">
+          <button type="button" aria-label="Move section down" disabled={index === sections.length - 1} onClick={() => moveSection(index, 1)} className="px-2 text-neutral-400">
             ↓
           </button>
-          <button type="button" onClick={() => removeSection(index)} className="px-2 text-red-400/80">
+          <button type="button" aria-label="Remove section" disabled={sections.length === 1} onClick={() => removeSection(index)} className="px-2 text-red-400/80">
             ✕
           </button>
         </div>

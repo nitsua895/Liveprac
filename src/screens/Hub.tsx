@@ -28,7 +28,7 @@ export function Hub() {
         </span>
       </header>
 
-      <NowPlayingBar />
+      <NowPlayingBar compact />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm uppercase tracking-wide text-neutral-500">Start a session</h2>

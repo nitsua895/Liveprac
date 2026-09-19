@@ -9,8 +9,8 @@
  * Auth is the PKCE authorization-code flow, which needs no client secret and
  * so works from a static site. Two things are required before it does
  * anything:
- *   1. A Spotify app registered at developer.spotify.com, with this site's
- *      origin added as a redirect URI. Its Client ID goes in Settings.
+ *   1. The Liveprac Spotify app, with this site's origin registered as a
+ *      redirect URI. Its public Client ID is bundled below.
  *   2. A Spotify Premium account — the playback-control endpoints reject
  *      free accounts.
  */
@@ -18,11 +18,14 @@
 const AUTH_URL = 'https://accounts.spotify.com/authorize'
 const TOKEN_URL = 'https://accounts.spotify.com/api/token'
 const API = 'https://api.spotify.com/v1'
+// Spotify client IDs identify an app but do not grant access and are safe to
+// ship in browser code. PKCE keeps authentication secret-free.
+const CLIENT_ID = 'eea47657938545eba54a5e6bf63b4c50'
 const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
 
 const KEYS = {
-  clientId: 'liveprac:v1:spotifyClientId',
   verifier: 'liveprac:v1:spotifyVerifier',
+  state: 'liveprac:v1:spotifyAuthState',
   token: 'liveprac:v1:spotifyToken',
 }
 
@@ -36,8 +39,16 @@ export interface NowPlayingState {
   isConnected: boolean
   trackName: string | null
   artistName: string | null
+  albumName: string | null
+  albumArtUrl: string | null
+  trackUri: string | null
   isPlaying: boolean
+  progressMs: number
+  durationMs: number
   volumePercent: number | null
+  deviceName: string | null
+  shuffle: boolean
+  repeat: 'off' | 'track' | 'context'
   /** Set when Spotify rejects a command, e.g. no active device or not Premium. */
   error: string | null
 }
@@ -46,8 +57,16 @@ export const EMPTY_STATE: NowPlayingState = {
   isConnected: false,
   trackName: null,
   artistName: null,
+  albumName: null,
+  albumArtUrl: null,
+  trackUri: null,
   isPlaying: false,
+  progressMs: 0,
+  durationMs: 0,
   volumePercent: null,
+  deviceName: null,
+  shuffle: false,
+  repeat: 'off',
   error: null,
 }
 
@@ -66,14 +85,6 @@ function write(key: string, value: string | null) {
   } catch {
     // Storage unavailable — auth just won't persist.
   }
-}
-
-export function getClientId(): string {
-  return read(KEYS.clientId) ?? (import.meta.env.VITE_SPOTIFY_CLIENT_ID as string | undefined) ?? ''
-}
-
-export function setClientId(id: string) {
-  write(KEYS.clientId, id.trim() || null)
 }
 
 /** Must exactly match a redirect URI registered on the Spotify app. */
@@ -114,9 +125,8 @@ function base64url(buffer: ArrayBuffer): string {
 }
 
 export async function beginAuth(): Promise<void> {
-  const clientId = getClientId()
-  if (!clientId) throw new Error('Add your Spotify Client ID in Settings first.')
-
+  const state = randomString(24)
+  write(KEYS.state, state)
   const verifier = randomString(48)
   write(KEYS.verifier, verifier)
   const challenge = base64url(
@@ -124,12 +134,13 @@ export async function beginAuth(): Promise<void> {
   )
 
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id: CLIENT_ID,
     response_type: 'code',
     redirect_uri: redirectUri(),
     code_challenge_method: 'S256',
     code_challenge: challenge,
     scope: SCOPES,
+    state,
   })
   window.location.href = `${AUTH_URL}?${params}`
 }
@@ -138,16 +149,21 @@ export async function beginAuth(): Promise<void> {
 export async function completeAuthFromUrl(): Promise<boolean> {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
+  if (params.has('error')) {
+    window.history.replaceState({}, '', window.location.pathname)
+    throw new Error('Spotify connection was not approved. Please try Connect again.')
+  }
   if (!code) return false
 
   const verifier = read(KEYS.verifier)
-  const clientId = getClientId()
   // Clear the query string either way so a reload doesn't retry a used code.
   window.history.replaceState({}, '', window.location.pathname)
-  if (!verifier || !clientId) return false
+  if (!verifier || !read(KEYS.state) || params.get('state') !== read(KEYS.state)) {
+    throw new Error('Spotify login expired or was opened in another browser. Please connect again here.')
+  }
 
   const body = new URLSearchParams({
-    client_id: clientId,
+    client_id: CLIENT_ID,
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri(),
@@ -158,7 +174,7 @@ export async function completeAuthFromUrl(): Promise<boolean> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   })
-  if (!res.ok) return false
+  if (!res.ok) throw new Error('Spotify could not finish connecting. Please try Connect again.')
   const json = await res.json()
   write(
     KEYS.token,
@@ -169,6 +185,7 @@ export async function completeAuthFromUrl(): Promise<boolean> {
     } satisfies StoredToken),
   )
   write(KEYS.verifier, null)
+  write(KEYS.state, null)
   return true
 }
 
@@ -185,7 +202,7 @@ async function freshAccessToken(): Promise<string | null> {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: getClientId(),
+      client_id: CLIENT_ID,
       grant_type: 'refresh_token',
       refresh_token: token.refreshToken,
     }),
@@ -228,8 +245,16 @@ export async function fetchState(): Promise<NowPlayingState> {
     isConnected: true,
     trackName: json.item?.name ?? null,
     artistName: json.item?.artists?.map((a: { name: string }) => a.name).join(', ') ?? null,
+    albumName: json.item?.album?.name ?? null,
+    albumArtUrl: json.item?.album?.images?.[1]?.url ?? json.item?.album?.images?.[0]?.url ?? null,
+    trackUri: json.item?.uri ?? null,
     isPlaying: Boolean(json.is_playing),
+    progressMs: json.progress_ms ?? 0,
+    durationMs: json.item?.duration_ms ?? 0,
     volumePercent: json.device?.volume_percent ?? null,
+    deviceName: json.device?.name ?? null,
+    shuffle: Boolean(json.shuffle_state),
+    repeat: json.repeat_state ?? 'off',
     error: null,
   }
 }
@@ -250,3 +275,9 @@ export const next = () => command('/me/player/next', 'POST')
 export const previous = () => command('/me/player/previous', 'POST')
 export const setVolume = (percent: number) =>
   command(`/me/player/volume?volume_percent=${Math.round(percent)}`, 'PUT')
+export const seek = (positionMs: number) =>
+  command(`/me/player/seek?position_ms=${Math.max(0, Math.round(positionMs))}`, 'PUT')
+export const setShuffle = (enabled: boolean) =>
+  command(`/me/player/shuffle?state=${enabled}`, 'PUT')
+export const setRepeat = (state: NowPlayingState['repeat']) =>
+  command(`/me/player/repeat?state=${state}`, 'PUT')
