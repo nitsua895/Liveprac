@@ -20,7 +20,9 @@ export function AmbientGlow() {
   const [dismissingId, setDismissingId] = useState<string | null>(null)
 
   function handleDismiss() {
-    if (!current || dismissingId) return
+    // Compare against this cue, not a bare truthiness check — a stale id from a
+    // previous dismissal would otherwise block every later cue from clearing.
+    if (!current || dismissingId === current.id) return
     setDismissingId(current.id)
     setTimeout(() => dismissAmbientCue(current.id), 200)
   }
@@ -40,17 +42,17 @@ export function AmbientGlow() {
           <button
             type="button"
             onClick={handleDismiss}
-            className={`flex items-center gap-3 rounded-full border border-accent-300/30 bg-neutral-900/95 px-6 py-3.5 text-base text-accent-200 shadow-xl shadow-accent-900/40 backdrop-blur ${
+            className={`flex items-center gap-5 rounded-full border-2 border-accent-400/50 bg-neutral-900/95 px-9 py-5 shadow-2xl shadow-accent-900/50 backdrop-blur ${
               isDismissing ? 'cue-exit' : 'cue-enter'
             }`}
           >
-            <span>{current.message}</span>
-            <span className="text-sm text-accent-400/70">tap to clear</span>
+            <span className="text-3xl font-medium tracking-wide text-accent-200">{current.message}</span>
             {stackCount > 1 && (
-              <span className="rounded-full bg-accent-500/20 px-2.5 py-0.5 text-xs text-accent-300">
-                +{stackCount - 1} more
+              <span className="rounded-full bg-accent-500/25 px-3.5 py-1 text-lg text-accent-200">
+                +{stackCount - 1}
               </span>
             )}
+            <span className="text-base text-neutral-500">tap</span>
           </button>
         </div>
       )}

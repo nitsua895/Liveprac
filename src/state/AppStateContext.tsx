@@ -172,34 +172,35 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setAmbientCues((prev) => prev.filter((c) => c.id !== cueId))
   }
 
+  // Reads activeSession directly rather than through a setActiveSession
+  // updater: updaters must be pure, and doing the logging inside one made React
+  // run it twice, double-counting every signal.
   function logPreferenceEvent(type: PreferenceEventType, magnitude = 1) {
-    setActiveSession((current) => {
-      if (!current) return current
-      const section = current.sections[current.currentSectionIndex]
-      if (!section) return current
+    if (!activeSession) return
+    const section = activeSession.sections[activeSession.currentSectionIndex]
+    if (!section) return
 
-      const event: PreferenceEvent = {
-        id: makeCueId(),
-        timestamp: Date.now(),
-        sessionInstanceId: current.instanceId,
-        clientId: current.clientId,
-        sectionId: section.id,
-        sectionName: section.name,
-        type,
-        magnitude,
-      }
-      setEvents((prev) => [...prev, event])
+    const event: PreferenceEvent = {
+      id: makeCueId(),
+      timestamp: Date.now(),
+      sessionInstanceId: activeSession.instanceId,
+      clientId: activeSession.clientId,
+      sectionId: section.id,
+      sectionName: section.name,
+      type,
+      magnitude,
+    }
+    setEvents((prev) => [...prev, event])
 
-      const messages: Record<PreferenceEventType, string> = {
-        pressure_up: 'Client asked for more pressure',
-        pressure_down: 'Client asked for less pressure',
-        loved: 'Client loved this',
-        flagged: 'Client flagged this',
-      }
-      pushAmbientCue({ kind: 'preference', message: messages[type] })
-
-      return current
-    })
+    // Kept short on purpose — these are read at a glance from across the
+    // table, not studied.
+    const messages: Record<PreferenceEventType, string> = {
+      pressure_up: 'More pressure',
+      pressure_down: 'Less pressure',
+      loved: 'Loved this',
+      flagged: 'Not a fan',
+    }
+    pushAmbientCue({ kind: 'preference', message: messages[type] })
   }
 
   function eventsForSession(instanceId: string) {

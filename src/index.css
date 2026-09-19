@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+  --animate-pulse-slow: pulse-slow 1.8s ease-in-out infinite;
   --animate-section-enter: section-enter 500ms ease-out;
 
   /* Muted on purpose — this runs on a screen in a dim room a few feet from
@@ -18,8 +18,8 @@
 /* Pre-mixed rgba rather than color-mix(), which needs a newer WebKit than
    some iPads run. Values match accent-500/400 per theme. */
 :root {
-  --vignette-soft: rgba(178, 125, 56, 0.15);
-  --vignette-flash: rgba(188, 144, 78, 0.28);
+  --vignette-soft: rgba(178, 125, 56, 0.4);
+  --vignette-flash: rgba(206, 160, 92, 0.65);
 }
 
 /* Alternate accent palettes — same lightness per step, different hue, so
@@ -32,8 +32,8 @@
   --color-accent-500: hsl(262 38% 47%);
   --color-accent-700: hsl(262 32% 32%);
   --color-accent-900: hsl(262 28% 16%);
-  --vignette-soft: rgba(108, 74, 165, 0.15);
-  --vignette-flash: rgba(130, 101, 179, 0.28);
+  --vignette-soft: rgba(108, 74, 165, 0.4);
+  --vignette-flash: rgba(146, 116, 196, 0.65);
 }
 
 :root[data-accent='crimson'] {
@@ -43,17 +43,20 @@
   --color-accent-500: hsl(350 42% 47%);
   --color-accent-700: hsl(350 36% 32%);
   --color-accent-900: hsl(350 32% 16%);
-  --vignette-soft: rgba(170, 70, 86, 0.15);
-  --vignette-flash: rgba(184, 97, 111, 0.28);
+  --vignette-soft: rgba(170, 70, 86, 0.4);
+  --vignette-flash: rgba(200, 110, 126, 0.65);
 }
 
+/* Wide swing and a faster cycle than a decorative "breathing" effect — this
+   has to be catchable in peripheral vision while she's looking at the table,
+   and it keeps running until the cue is acknowledged. */
 @keyframes pulse-slow {
   0%,
   100% {
-    opacity: 0.45;
+    opacity: 0.25;
   }
   50% {
-    opacity: 0.85;
+    opacity: 1;
   }
 }
 
@@ -75,7 +78,7 @@
    whenever a new cue arrives, so a second signal never gets lost under an
    already-showing one. */
 .ambient-vignette {
-  box-shadow: inset 0 0 min(4vw, 36px) min(0.5vw, 5px) var(--vignette-soft);
+  box-shadow: inset 0 0 min(9vw, 90px) min(1.5vw, 16px) var(--vignette-soft);
 }
 
 @keyframes glow-flash-once {
@@ -91,7 +94,7 @@
 }
 
 .ambient-vignette-flash {
-  box-shadow: inset 0 0 min(5vw, 46px) min(0.8vw, 8px) var(--vignette-flash);
+  box-shadow: inset 0 0 min(11vw, 110px) min(2vw, 22px) var(--vignette-flash);
   animation: glow-flash-once 700ms ease-out forwards;
 }
 

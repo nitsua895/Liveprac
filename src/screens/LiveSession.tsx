@@ -63,7 +63,7 @@ export function LiveSession() {
     cuedSectionRef.current = activeSession.currentSectionIndex
     pushAmbientCue({
       kind: 'timer',
-      message: nextSection ? `Time to move on — next: ${nextSection.name}` : 'Final section time is up',
+      message: nextSection ? `Next: ${nextSection.name}` : 'Time is up',
     })
   }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue])
 
