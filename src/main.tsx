@@ -9,7 +9,12 @@ import { completeAuthFromUrl } from './lib/spotify'
 
 applyAccent(getStoredAccent())
 // Spotify sends the browser back here with ?code=…; swap it for a token.
-void completeAuthFromUrl()
+async function boot() {
+  try {
+    await completeAuthFromUrl()
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : 'Spotify connection failed.')
+  }
 
 // Real paths, not hash routes — netlify.toml rewrites every path to index.html.
 createRoot(document.getElementById('root')!).render(
@@ -23,3 +28,5 @@ createRoot(document.getElementById('root')!).render(
 )
 
 document.getElementById('boot')?.remove()
+}
+void boot()
