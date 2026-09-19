@@ -55,9 +55,13 @@ export interface ActiveSession {
   pausedAt: number | null
 }
 
+/** Drives the glow colour, so the kind of alert reads peripherally without being read. */
+export type CueTone = 'pressure' | 'love' | 'flag' | 'next'
+
 export interface AmbientCue {
   id: string
   kind: 'preference' | 'timer'
+  tone: CueTone
   message: string
   createdAt: number
 }

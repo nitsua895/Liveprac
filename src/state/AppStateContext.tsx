@@ -6,6 +6,7 @@ import type {
   ActiveSession,
   AmbientCue,
   ClientProfile,
+  CueTone,
   PreferenceEvent,
   PreferenceEventType,
   SectionTemplate,
@@ -194,13 +195,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
     // Kept short on purpose — these are read at a glance from across the
     // table, not studied.
-    const messages: Record<PreferenceEventType, string> = {
-      pressure_up: 'More pressure',
-      pressure_down: 'Less pressure',
-      loved: 'Loved this',
-      flagged: 'Not a fan',
+    const cues: Record<PreferenceEventType, { message: string; tone: CueTone }> = {
+      pressure_up: { message: 'More pressure', tone: 'pressure' },
+      pressure_down: { message: 'Less pressure', tone: 'pressure' },
+      loved: { message: 'Loved this', tone: 'love' },
+      flagged: { message: 'Not a fan', tone: 'flag' },
     }
-    pushAmbientCue({ kind: 'preference', message: messages[type] })
+    pushAmbientCue({ kind: 'preference', ...cues[type] })
   }
 
   function eventsForSession(instanceId: string) {

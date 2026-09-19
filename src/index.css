@@ -16,10 +16,43 @@
 }
 
 /* Pre-mixed rgba rather than color-mix(), which needs a newer WebKit than
-   some iPads run. Values match accent-500/400 per theme. */
+   some iPads run. */
 :root {
   --vignette-soft: rgba(178, 125, 56, 0.4);
   --vignette-flash: rgba(206, 160, 92, 0.65);
+  --cue-border: rgba(206, 160, 92, 0.55);
+  --cue-text: rgb(240, 200, 150);
+}
+
+/* Cue colour is semantic, not themed: the point is to tell what kind of alert
+   it is from peripheral vision without reading the words. The accent theme
+   still governs the rest of the UI. */
+[data-tone='pressure'] {
+  --vignette-soft: rgba(200, 130, 55, 0.4);
+  --vignette-flash: rgba(224, 158, 84, 0.65);
+  --cue-border: rgba(224, 158, 84, 0.55);
+  --cue-text: rgb(240, 200, 150);
+}
+
+[data-tone='love'] {
+  --vignette-soft: rgba(198, 68, 68, 0.4);
+  --vignette-flash: rgba(222, 100, 100, 0.65);
+  --cue-border: rgba(222, 100, 100, 0.55);
+  --cue-text: rgb(245, 175, 175);
+}
+
+[data-tone='flag'] {
+  --vignette-soft: rgba(72, 130, 190, 0.4);
+  --vignette-flash: rgba(104, 160, 214, 0.65);
+  --cue-border: rgba(104, 160, 214, 0.55);
+  --cue-text: rgb(175, 205, 240);
+}
+
+[data-tone='next'] {
+  --vignette-soft: rgba(138, 100, 200, 0.4);
+  --vignette-flash: rgba(166, 134, 220, 0.65);
+  --cue-border: rgba(166, 134, 220, 0.55);
+  --cue-text: rgb(206, 186, 245);
 }
 
 /* Alternate accent palettes — same lightness per step, different hue, so

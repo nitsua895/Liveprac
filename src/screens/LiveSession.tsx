@@ -11,6 +11,7 @@ import { formatClock, sessionDurationSec } from '../lib/time'
 import { useAppState } from '../state/AppStateContext'
 
 const QUICK_EXTEND_SEC = 2 * 60
+const WARN_AHEAD_SEC = 60
 
 export function LiveSession() {
   const {
@@ -31,6 +32,7 @@ export function LiveSession() {
   const [now, setNow] = useState(() => Date.now())
   const [editingPlan, setEditingPlan] = useState(false)
   const cuedSectionRef = useRef<number | null>(null)
+  const warnedSectionRef = useRef<number | null>(null)
 
   const template = activeSession ? templates.find((t) => t.id === activeSession.templateId) : undefined
   const section = activeSession ? activeSession.sections[activeSession.currentSectionIndex] : undefined
@@ -57,12 +59,27 @@ export function LiveSession() {
     })
   }, [logPreferenceEvent])
 
+  // Heads-up while there's still time to finish the stroke, not just at zero.
+  useEffect(() => {
+    if (!activeSession || !section) return
+    if (sectionRemainingSec > WARN_AHEAD_SEC || sectionRemainingSec <= 0) return
+    if (section.durationSec <= WARN_AHEAD_SEC * 1.5) return
+    if (warnedSectionRef.current === activeSession.currentSectionIndex) return
+    warnedSectionRef.current = activeSession.currentSectionIndex
+    pushAmbientCue({
+      kind: 'timer',
+      tone: 'next',
+      message: nextSection ? `1 min → ${nextSection.name}` : '1 min left',
+    })
+  }, [activeSession, section, sectionRemainingSec, nextSection, pushAmbientCue])
+
   useEffect(() => {
     if (!activeSession || sectionRemainingSec > 0) return
     if (cuedSectionRef.current === activeSession.currentSectionIndex) return
     cuedSectionRef.current = activeSession.currentSectionIndex
     pushAmbientCue({
       kind: 'timer',
+      tone: 'next',
       message: nextSection ? `Next: ${nextSection.name}` : 'Time is up',
     })
   }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue])
@@ -113,59 +130,65 @@ export function LiveSession() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex items-start justify-between">
-        <p className="pt-2 text-sm text-neutral-500">
+    <div className="flex flex-col gap-5">
+      <header className="flex items-center justify-between">
+        <p className="text-base text-neutral-500">
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
-        <TimerDial
-          sizePx={64}
-          remainingFraction={sessionRemainingSec / totalDuration}
-          over={sessionRemainingSec < 0}
-          strokeWidth={4}
-        >
-          <span className="text-[9px] uppercase tracking-wide text-neutral-500">Session</span>
-          <span className={`font-mono text-xs ${sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-300'}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm uppercase tracking-wide text-neutral-600">Session</span>
+          <span
+            className={`font-mono text-2xl tabular-nums ${
+              sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
+            }`}
+          >
+            {sessionRemainingSec < 0 ? '+' : ''}
             {formatClock(Math.abs(sessionRemainingSec))}
           </span>
-        </TimerDial>
+        </div>
       </header>
 
+      {/* Body zone beside the dial rather than stacked above it: fills the
+          landscape screen and keeps everything above the fold. */}
       <div
         key={activeSession.currentSectionIndex}
-        className="animate-section-enter flex flex-col items-center gap-3"
+        className="animate-section-enter grid grid-cols-[1fr_auto_1fr] items-center gap-6"
       >
-        <BodyZoneDiagram activeZone={section.bodyZone} size={80} />
-        <p className="text-lg uppercase tracking-widest text-accent-400/80">{section.name}</p>
-
-        <PressureReadout net={netPressure} />
+        <div className="flex flex-col items-center gap-3">
+          <BodyZoneDiagram activeZone={section.bodyZone} size={110} />
+          <p className="text-center text-2xl uppercase tracking-widest text-accent-400">
+            {section.name}
+          </p>
+        </div>
 
         <TimerDial
-          sizePx={280}
+          sizePx={300}
           remainingFraction={sectionRemainingSec / section.durationSec}
           over={sectionRemainingSec < 0}
-          strokeWidth={10}
+          strokeWidth={12}
         >
           <span
-            className={`font-mono text-6xl tabular-nums ${
-              sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-100'
+            className={`font-mono text-7xl tabular-nums ${
+              sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
             }`}
           >
             {formatClock(Math.abs(sectionRemainingSec))}
           </span>
+          <PressureReadout net={netPressure} />
         </TimerDial>
 
-        <button
-          type="button"
-          onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-          className="rounded-full border border-neutral-800 px-3 py-1 text-xs text-neutral-400"
-        >
-          +2 min
-        </button>
+        <div className="flex flex-col items-center gap-3">
+          <NextUpCard section={nextSection} />
+          <button
+            type="button"
+            onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
+            className="rounded-full border border-neutral-700 px-4 py-1.5 text-base text-neutral-400"
+          >
+            +2 min
+          </button>
+        </div>
       </div>
-
-      <NextUpCard section={nextSection} />
 
       <SectionTimeline sections={activeSession.sections} currentIndex={activeSession.currentSectionIndex} />
 
@@ -218,19 +241,17 @@ export function LiveSession() {
 }
 
 function PressureReadout({ net }: { net: number }) {
+  if (net === 0) return null
   const up = net > 0
-  const down = net < 0
   return (
-    <div className="flex flex-col items-center">
-      <span className="text-xs uppercase tracking-wide text-neutral-500">Pressure</span>
-      <span
-        className={`font-mono text-4xl font-semibold tabular-nums ${
-          up ? 'text-accent-300' : down ? 'text-sky-300' : 'text-neutral-600'
-        }`}
-      >
-        {net === 0 ? '—' : `${up ? '+' : ''}${net}`}
-      </span>
-    </div>
+    <span
+      className={`mt-1 font-mono text-3xl font-semibold tabular-nums ${
+        up ? 'text-orange-300' : 'text-sky-300'
+      }`}
+    >
+      {up ? '+' : ''}
+      {net} pressure
+    </span>
   )
 }
 
@@ -241,6 +262,9 @@ function PressureReadout({ net }: { net: number }) {
  */
 function RemoteSimulator() {
   const [gamepadOn, setGamepadOn] = useState(false)
+  // Collapsed by default so the session screen fits without scrolling; this
+  // whole panel goes away once real hardware exists.
+  const [open, setOpen] = useState(false)
   const stopRef = useRef<(() => void) | null>(null)
 
   function toggleGamepad() {
@@ -256,12 +280,28 @@ function RemoteSimulator() {
 
   useEffect(() => () => stopRef.current?.(), [])
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mx-auto rounded-full border border-dashed border-neutral-800 px-4 py-1 text-sm text-neutral-600"
+      >
+        Test controls
+      </button>
+    )
+  }
+
   return (
     <div className="rounded-xl border border-dashed border-neutral-800 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-neutral-600">
-          Remote simulator (no hardware paired yet)
-        </p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs uppercase tracking-wide text-neutral-600"
+        >
+          Remote simulator — hide
+        </button>
         {isGamepadSupported() && (
           <button
             type="button"

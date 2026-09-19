@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AmbientGlow } from './AmbientGlow'
 
 const NAV_ITEMS = [
@@ -9,13 +9,22 @@ const NAV_ITEMS = [
 ]
 
 export function HubShell() {
+  // The live session hides the nav and runs tighter padding: everything has to
+  // be legible at a glance from across the table without scrolling.
+  const inSession = useLocation().pathname === '/session'
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <AmbientGlow />
-      <main className="mx-auto max-w-4xl px-8 pb-28 pt-14">
+      <main
+        className={`mx-auto ${inSession ? 'max-w-6xl px-6 pb-6 pt-6' : 'max-w-4xl px-8 pb-28 pt-14'}`}
+      >
         <Outlet />
       </main>
-      <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-900 bg-neutral-950/95 backdrop-blur">
+      <nav
+        hidden={inSession}
+        className="fixed inset-x-0 bottom-0 border-t border-neutral-900 bg-neutral-950/95 backdrop-blur"
+      >
         <div className="mx-auto flex max-w-4xl justify-around px-4 py-3">
           {NAV_ITEMS.map((item) => (
             <NavLink

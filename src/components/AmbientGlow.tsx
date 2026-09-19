@@ -30,25 +30,30 @@ export function AmbientGlow() {
   const isDismissing = current && dismissingId === current.id
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-40">
+    <div className="pointer-events-none fixed inset-0 z-40" data-tone={current?.tone}>
       <div
         className={`ambient-vignette absolute inset-0 transition-opacity duration-700 ${
           current ? 'animate-pulse-slow opacity-100' : 'opacity-0'
         }`}
       />
       {current && <div key={ambientCues.at(-1)?.id} className="ambient-vignette-flash absolute inset-0" />}
+      {/* Banner sits in the empty centre of the header row so it doesn't cover the dial. */}
       {current && (
-        <div className="pointer-events-auto absolute left-1/2 top-28 -translate-x-1/2">
+        <div className="pointer-events-auto absolute left-1/2 top-2 -translate-x-1/2">
           <button
             type="button"
             onClick={handleDismiss}
-            className={`flex items-center gap-5 rounded-full border-2 border-accent-400/50 bg-neutral-900/95 px-9 py-5 shadow-2xl shadow-accent-900/50 backdrop-blur ${
+            style={{ borderColor: 'var(--cue-border)', color: 'var(--cue-text)' }}
+            className={`flex items-center gap-5 rounded-full border-2 bg-neutral-900/95 px-9 py-5 shadow-2xl backdrop-blur ${
               isDismissing ? 'cue-exit' : 'cue-enter'
             }`}
           >
-            <span className="text-3xl font-medium tracking-wide text-accent-200">{current.message}</span>
+            <span className="text-3xl font-medium tracking-wide">{current.message}</span>
             {stackCount > 1 && (
-              <span className="rounded-full bg-accent-500/25 px-3.5 py-1 text-lg text-accent-200">
+              <span
+                className="rounded-full px-3.5 py-1 text-lg"
+                style={{ background: 'var(--vignette-soft)' }}
+              >
                 +{stackCount - 1}
               </span>
             )}
