@@ -11,9 +11,13 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   const [connecting, setConnecting] = useState(false)
 
   const refresh = useCallback(async () => {
+    try {
     const next = await spotify.fetchState()
     setState(next)
     setError(next.error)
+    } catch {
+      setError('Spotify is unreachable. Check your connection; session timing is unaffected.')
+    }
   }, [])
 
   useEffect(() => {
@@ -39,9 +43,13 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   }, [state.isPlaying, state.durationMs])
 
   async function run(action: () => Promise<string | null>) {
+    try {
     const message = await action()
     setError(message)
     if (!message) setTimeout(() => void refresh(), 250)
+    } catch {
+      setError('Spotify command failed. Check your connection and try again.')
+    }
   }
 
   if (!spotify.isConnected()) {
@@ -188,6 +196,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
               min={0}
               max={100}
               value={volume}
+              disabled={state.volumePercent === null}
               onChange={(event) => setLocal('volumePercent', Number(event.target.value))}
               onPointerUp={() => void run(() => spotify.setVolume(state.volumePercent ?? 0))}
               onKeyUp={() => void run(() => spotify.setVolume(state.volumePercent ?? 0))}
@@ -280,13 +289,13 @@ function Icon({ name, className = 'h-5 w-5' }: { name: IconName; className?: str
   if (name === 'previous')
     return (
       <svg {...common}>
-        <path d="M18 6 9 12l9 6V6ZM6 6v12" fill="currentColor" stroke="none" />
+        <path d="M18 6 9 12l9 6V6ZM5 6h2v12H5z" fill="currentColor" stroke="none" />
       </svg>
     )
   if (name === 'next')
     return (
       <svg {...common}>
-        <path d="m6 6 9 6-9 6V6Zm12 0v12" fill="currentColor" stroke="none" />
+        <path d="m6 6 9 6-9 6V6Zm11 0h2v12h-2z" fill="currentColor" stroke="none" />
       </svg>
     )
   if (name === 'play')
