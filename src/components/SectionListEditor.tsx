@@ -123,7 +123,7 @@ export function SectionListEditor({
         <div
           key={section.id}
           data-section-row
-          className="grid grid-cols-[auto_auto_minmax(10rem,1fr)_auto_auto] items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
+          className="section-editor-row grid items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
         >
           <button
             type="button"
@@ -133,7 +133,7 @@ export function SectionListEditor({
               if (event.key === 'ArrowUp') moveSection(index, index - 1)
               if (event.key === 'ArrowDown') moveSection(index, index + 1)
             }}
-            className="cursor-grab touch-none px-2 text-2xl tracking-[-0.18em] text-neutral-500 active:cursor-grabbing"
+            className="section-drag cursor-grab touch-none px-2 text-neutral-500 active:cursor-grabbing"
           >
             <svg viewBox="0 0 18 24" width="18" height="24" fill="currentColor" aria-hidden="true">
               <circle cx="5" cy="5" r="1.5" /><circle cx="13" cy="5" r="1.5" />
@@ -141,8 +141,8 @@ export function SectionListEditor({
               <circle cx="5" cy="19" r="1.5" /><circle cx="13" cy="19" r="1.5" />
             </svg>
           </button>
-          <BodyZoneDiagram activeZone={section.bodyZone} size={34} />
-          <div className="min-w-0">
+          <div className="section-body"><BodyZoneDiagram activeZone={section.bodyZone} size={34} /></div>
+          <div className="section-fields min-w-0">
             <input
               aria-label="Section name"
               value={section.name}
@@ -160,7 +160,7 @@ export function SectionListEditor({
               ))}
             </select>
           </div>
-          <div className="flex items-center rounded-full border border-neutral-700 bg-neutral-950">
+          <div className="section-duration flex items-center justify-center rounded-full border border-neutral-700 bg-neutral-950">
             <button
               type="button"
               aria-label={`Remove one minute from ${section.name}`}
@@ -187,7 +187,7 @@ export function SectionListEditor({
             aria-label={`Remove ${section.name}`}
             disabled={sections.length === 1}
             onClick={() => removeSection(index)}
-            className="w-11 rounded-full text-xl text-red-300/80"
+            className="section-remove w-11 rounded-full text-xl text-red-300/80"
           >
             ×
           </button>
