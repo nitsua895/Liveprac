@@ -46,6 +46,8 @@ export interface NowPlayingState {
   progressMs: number
   durationMs: number
   volumePercent: number | null
+  supportsVolume: boolean
+  deviceId: string | null
   deviceName: string | null
   shuffle: boolean
   repeat: 'off' | 'track' | 'context'
@@ -64,6 +66,8 @@ export const EMPTY_STATE: NowPlayingState = {
   progressMs: 0,
   durationMs: 0,
   volumePercent: null,
+  supportsVolume: false,
+  deviceId: null,
   deviceName: null,
   shuffle: false,
   repeat: 'off',
@@ -252,6 +256,8 @@ export async function fetchState(): Promise<NowPlayingState> {
     progressMs: json.progress_ms ?? 0,
     durationMs: json.item?.duration_ms ?? 0,
     volumePercent: json.device?.volume_percent ?? null,
+    supportsVolume: Boolean(json.device?.supports_volume),
+    deviceId: json.device?.id ?? null,
     deviceName: json.device?.name ?? null,
     shuffle: Boolean(json.shuffle_state),
     repeat: json.repeat_state ?? 'off',
@@ -264,8 +270,16 @@ async function command(path: string, method: string): Promise<string | null> {
   const res = await call(path, { method })
   if (!res) return 'Not connected'
   if (res.status === 404) return 'No active Spotify device — start playback on a speaker or phone first'
-  if (res.status === 403) return 'Spotify Premium is required to control playback'
-  if (!res.ok && res.status !== 204) return `Spotify error ${res.status}`
+  if (!res.ok && res.status !== 204) {
+    try {
+      const detail = (await res.json()) as { error?: { message?: string } }
+      if (detail.error?.message) return detail.error.message
+    } catch {
+      // Some player errors have no JSON body.
+    }
+    if (res.status === 403) return 'Spotify rejected this control for the active device'
+    return `Spotify error ${res.status}`
+  }
   return null
 }
 
@@ -273,8 +287,11 @@ export const play = () => command('/me/player/play', 'PUT')
 export const pause = () => command('/me/player/pause', 'PUT')
 export const next = () => command('/me/player/next', 'POST')
 export const previous = () => command('/me/player/previous', 'POST')
-export const setVolume = (percent: number) =>
-  command(`/me/player/volume?volume_percent=${Math.round(percent)}`, 'PUT')
+export const setVolume = (percent: number, deviceId?: string | null) => {
+  const query = new URLSearchParams({ volume_percent: String(Math.round(percent)) })
+  if (deviceId) query.set('device_id', deviceId)
+  return command(`/me/player/volume?${query}`, 'PUT')
+}
 export const seek = (positionMs: number) =>
   command(`/me/player/seek?position_ms=${Math.max(0, Math.round(positionMs))}`, 'PUT')
 export const setShuffle = (enabled: boolean) =>
