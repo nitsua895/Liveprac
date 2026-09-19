@@ -13,6 +13,24 @@ import type {
   SessionTemplate,
 } from '../types'
 
+const MIN_SECTION_SEC = 60
+
+function takeFromFollowingSections(
+  sections: SectionTemplate[],
+  currentIndex: number,
+  requestedSec: number,
+): { sections: SectionTemplate[]; takenSec: number } {
+  const next = sections.map((section) => ({ ...section }))
+  let remaining = Math.max(0, requestedSec)
+  for (let index = currentIndex + 1; index < next.length && remaining > 0; index += 1) {
+    const available = Math.max(0, next[index].durationSec - MIN_SECTION_SEC)
+    const taken = Math.min(available, remaining)
+    next[index].durationSec -= taken
+    remaining -= taken
+  }
+  return { sections: next, takenSec: requestedSec - remaining }
+}
+
 interface AppState {
   templates: SessionTemplate[]
   clients: ClientProfile[]
@@ -103,6 +121,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       clientId,
       sections: template.sections.map((s) => ({ ...s })),
       startedAt: now,
+      plannedDurationSec: template.sections.reduce((sum, section) => sum + section.durationSec, 0),
       currentSectionIndex: 0,
       sectionStartedAt: now,
       paused: false,
@@ -118,16 +137,32 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (nextIndex >= prev.sections.length) {
         return prev
       }
-      return { ...prev, currentSectionIndex: nextIndex, sectionStartedAt: prev.pausedAt ?? Date.now() }
+      const transitionAt = prev.pausedAt ?? Date.now()
+      const current = prev.sections[prev.currentSectionIndex]
+      const elapsedSec = Math.max(0, (transitionAt - prev.sectionStartedAt) / 1000)
+      const unusedSec = Math.max(0, current.durationSec - elapsedSec)
+      const sections = prev.sections.map((section) => ({ ...section }))
+      sections[prev.currentSectionIndex].durationSec = Math.min(current.durationSec, elapsedSec)
+      sections[nextIndex].durationSec += unusedSec
+      return { ...prev, sections, currentSectionIndex: nextIndex, sectionStartedAt: transitionAt }
     })
   }
 
   function extendCurrentSection(extraSec: number) {
     setActiveSession((prev) => {
       if (!prev) return prev
-      const sections = prev.sections.map((s, i) =>
-        i === prev.currentSectionIndex ? { ...s, durationSec: s.durationSec + extraSec } : s,
-      )
+      let sections = prev.sections.map((section) => ({ ...section }))
+      if (extraSec > 0) {
+        const result = takeFromFollowingSections(sections, prev.currentSectionIndex, extraSec)
+        sections = result.sections
+        sections[prev.currentSectionIndex].durationSec += result.takenSec
+      } else if (extraSec < 0) {
+        const current = sections[prev.currentSectionIndex]
+        const released = Math.min(Math.max(0, current.durationSec - MIN_SECTION_SEC), -extraSec)
+        current.durationSec -= released
+        const receiver = sections[prev.currentSectionIndex + 1]
+        if (receiver) receiver.durationSec += released
+      }
       return { ...prev, sections }
     })
   }
@@ -152,11 +187,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!prev) return prev
       if (prev.paused) {
         const pausedMs = prev.pausedAt ? Date.now() - prev.pausedAt : 0
+        const result = takeFromFollowingSections(
+          prev.sections,
+          prev.currentSectionIndex,
+          pausedMs / 1000,
+        )
         return {
           ...prev,
+          sections: result.sections,
           paused: false,
           pausedAt: null,
-          startedAt: prev.startedAt + pausedMs,
           sectionStartedAt: prev.sectionStartedAt + pausedMs,
         }
       }
