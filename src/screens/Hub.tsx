@@ -16,7 +16,7 @@ export function Hub() {
         <button
           type="button"
           onClick={() => navigate('/session')}
-          className="rounded-full bg-amber-500 px-6 py-3 font-medium text-neutral-950"
+          className="rounded-full bg-accent-500 px-6 py-3 font-medium text-neutral-950"
         >
           Return to session
         </button>
@@ -54,7 +54,7 @@ export function Hub() {
               key={template.id}
               type="button"
               onClick={() => setPickingTemplateId(template.id)}
-              className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 text-left transition-colors hover:border-amber-500/40"
+              className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 text-left transition-colors hover:border-accent-500/40"
             >
               <p className="text-lg text-neutral-100">{template.name}</p>
               <p className="mt-1 text-sm text-neutral-500">
@@ -73,7 +73,7 @@ export function Hub() {
               <button
                 type="button"
                 onClick={() => beginWith(null)}
-                className="rounded-lg border border-neutral-800 px-4 py-2 text-left text-neutral-300 hover:border-amber-500/40"
+                className="rounded-lg border border-neutral-800 px-4 py-2 text-left text-neutral-300 hover:border-accent-500/40"
               >
                 Walk-in / no profile
               </button>
@@ -82,7 +82,7 @@ export function Hub() {
                   key={client.id}
                   type="button"
                   onClick={() => beginWith(client.id)}
-                  className="rounded-lg border border-neutral-800 px-4 py-2 text-left text-neutral-300 hover:border-amber-500/40"
+                  className="rounded-lg border border-neutral-800 px-4 py-2 text-left text-neutral-300 hover:border-accent-500/40"
                 >
                   {client.name}
                 </button>
@@ -93,7 +93,7 @@ export function Hub() {
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
                 placeholder="New client name"
-                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-amber-500/50"
+                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
               />
               <button
                 type="button"
@@ -103,7 +103,7 @@ export function Hub() {
                   setNewClientName('')
                   beginWith(client.id)
                 }}
-                className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
+                className="rounded-lg bg-accent-500 px-3 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
               >
                 Add & start
               </button>

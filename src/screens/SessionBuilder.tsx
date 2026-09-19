@@ -24,7 +24,7 @@ export function SessionBuilder() {
         <button
           type="button"
           onClick={() => setEditing(emptyTemplate())}
-          className="rounded-full bg-amber-500 px-4 py-2 text-sm font-medium text-neutral-950"
+          className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950"
         >
           New Template
         </button>
@@ -74,7 +74,7 @@ function TemplateEditor({ template, onDone }: { template: SessionTemplate; onDon
       <input
         value={draft.name}
         onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-        className="rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3 text-xl text-neutral-100 outline-none focus:border-amber-500/50"
+        className="rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3 text-xl text-neutral-100 outline-none focus:border-accent-500/50"
       />
 
       <SectionListEditor
@@ -96,7 +96,7 @@ function TemplateEditor({ template, onDone }: { template: SessionTemplate; onDon
             saveTemplate(draft)
             onDone()
           }}
-          className="rounded-full bg-amber-500 px-5 py-2 text-sm font-medium text-neutral-950"
+          className="rounded-full bg-accent-500 px-5 py-2 text-sm font-medium text-neutral-950"
         >
           Save
         </button>

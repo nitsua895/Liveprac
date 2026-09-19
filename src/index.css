@@ -3,15 +3,46 @@
 @theme {
   --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
   --animate-section-enter: section-enter 500ms ease-out;
+
+  /* Muted on purpose — this runs on a screen in a dim room a few feet from
+     an undressed client's face. Full-saturation Tailwind amber/violet/red
+     read as glare at night; these are deliberately duller. */
+  --color-accent-200: hsl(38 32% 74%);
+  --color-accent-300: hsl(38 36% 62%);
+  --color-accent-400: hsl(36 45% 52%);
+  --color-accent-500: hsl(34 52% 46%);
+  --color-accent-700: hsl(32 42% 32%);
+  --color-accent-900: hsl(30 38% 16%);
+}
+
+/* Alternate accent palettes — same lightness per step, different hue, so
+   swapping never changes the overall brightness/glare, just the color.
+   Toggle from Settings; see src/lib/theme.ts. */
+:root[data-accent='violet'] {
+  --color-accent-200: hsl(262 28% 76%);
+  --color-accent-300: hsl(262 30% 65%);
+  --color-accent-400: hsl(262 34% 55%);
+  --color-accent-500: hsl(262 38% 47%);
+  --color-accent-700: hsl(262 32% 32%);
+  --color-accent-900: hsl(262 28% 16%);
+}
+
+:root[data-accent='crimson'] {
+  --color-accent-200: hsl(350 28% 76%);
+  --color-accent-300: hsl(350 32% 65%);
+  --color-accent-400: hsl(350 38% 55%);
+  --color-accent-500: hsl(350 42% 47%);
+  --color-accent-700: hsl(350 36% 32%);
+  --color-accent-900: hsl(350 32% 16%);
 }
 
 @keyframes pulse-slow {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.45;
   }
   50% {
-    opacity: 1;
+    opacity: 0.85;
   }
 }
 
@@ -24,6 +55,58 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* A soft vignette at the screen edges, not a hard ring — meant to register
+   in peripheral vision, not draw the eye directly. The box-shadow lives on
+   this base class unconditionally so opacity transitions have something to
+   fade to/from; a separate one-shot flash layer (below) pops on top of it
+   whenever a new cue arrives, so a second signal never gets lost under an
+   already-showing one. */
+.ambient-vignette {
+  box-shadow: inset 0 0 min(4vw, 36px) min(0.5vw, 5px)
+    color-mix(in oklab, var(--color-accent-500) 15%, transparent);
+}
+
+@keyframes glow-flash-once {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.ambient-vignette-flash {
+  box-shadow: inset 0 0 min(5vw, 46px) min(0.8vw, 8px)
+    color-mix(in oklab, var(--color-accent-400) 28%, transparent);
+  animation: glow-flash-once 700ms ease-out forwards;
+}
+
+@keyframes cue-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cue-enter {
+  animation: cue-in 300ms ease-out;
+}
+
+.cue-exit {
+  transition:
+    opacity 200ms ease-in,
+    transform 200ms ease-in;
+  opacity: 0;
+  transform: scale(0.94);
 }
 
 html,

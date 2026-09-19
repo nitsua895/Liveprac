@@ -14,15 +14,15 @@ export function SectionTimeline({
           <div
             className={`h-1.5 rounded-full transition-colors duration-500 ${
               index < currentIndex
-                ? 'bg-amber-700/60'
+                ? 'bg-accent-700/60'
                 : index === currentIndex
-                  ? 'bg-amber-400'
+                  ? 'bg-accent-400'
                   : 'bg-neutral-800'
             }`}
           />
           <p
             className={`mt-2 truncate text-center text-xs ${
-              index === currentIndex ? 'text-amber-300' : 'text-neutral-600'
+              index === currentIndex ? 'text-accent-300' : 'text-neutral-600'
             }`}
           >
             {section.name}

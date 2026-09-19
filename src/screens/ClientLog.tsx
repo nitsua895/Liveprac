@@ -40,7 +40,7 @@ export function ClientLog() {
             onClick={() => setSelectedClientId(client.id)}
             className={`rounded-full border px-4 py-1.5 text-sm ${
               selectedClientId === client.id
-                ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
+                ? 'border-accent-500/50 bg-accent-500/10 text-accent-300'
                 : 'border-neutral-800 text-neutral-400'
             }`}
           >
@@ -75,7 +75,7 @@ export function ClientLog() {
                         setCopied(true)
                         setTimeout(() => setCopied(false), 2000)
                       }}
-                      className="text-xs text-amber-400/80"
+                      className="text-xs text-accent-400/80"
                     >
                       {copied ? 'Copied' : 'Copy note for CRM'}
                     </button>

@@ -4,6 +4,9 @@ import { HashRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import { AppStateProvider } from './state/AppStateContext'
+import { applyAccent, getStoredAccent } from './lib/theme'
+
+applyAccent(getStoredAccent())
 
 // HashRouter (not BrowserRouter) because this is hosted on GitHub Pages as a
 // static site with no server-side rewrite for client-side routes.

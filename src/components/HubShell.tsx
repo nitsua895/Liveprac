@@ -12,7 +12,7 @@ export function HubShell() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <AmbientGlow />
-      <main className="mx-auto max-w-4xl px-6 pb-28 pt-10">
+      <main className="mx-auto max-w-4xl px-8 pb-28 pt-14">
         <Outlet />
       </main>
       <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-900 bg-neutral-950/95 backdrop-blur">
@@ -24,7 +24,7 @@ export function HubShell() {
               end={item.end}
               className={({ isActive }) =>
                 `rounded-lg px-4 py-1.5 text-sm transition-colors ${
-                  isActive ? 'bg-amber-500/10 text-amber-300' : 'text-neutral-500'
+                  isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
                 }`
               }
             >

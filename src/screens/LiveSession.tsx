@@ -103,7 +103,7 @@ export function LiveSession() {
           <button
             type="button"
             onClick={() => setEditingPlan(false)}
-            className="rounded-full bg-amber-500 px-5 py-2 text-sm font-medium text-neutral-950"
+            className="rounded-full bg-accent-500 px-5 py-2 text-sm font-medium text-neutral-950"
           >
             Done
           </button>
@@ -137,7 +137,10 @@ export function LiveSession() {
         className="animate-section-enter flex flex-col items-center gap-3"
       >
         <BodyZoneDiagram activeZone={section.bodyZone} size={80} />
-        <p className="text-lg uppercase tracking-widest text-amber-400/80">{section.name}</p>
+        <p className="text-lg uppercase tracking-widest text-accent-400/80">{section.name}</p>
+
+        <PressureReadout net={netPressure} />
+
         <TimerDial
           sizePx={280}
           remainingFraction={sectionRemainingSec / section.durationSec}
@@ -153,16 +156,13 @@ export function LiveSession() {
           </span>
         </TimerDial>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-            className="rounded-full border border-neutral-800 px-3 py-1 text-xs text-neutral-400"
-          >
-            +2 min
-          </button>
-          <PressurePill net={netPressure} />
-        </div>
+        <button
+          type="button"
+          onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
+          className="rounded-full border border-neutral-800 px-3 py-1 text-xs text-neutral-400"
+        >
+          +2 min
+        </button>
       </div>
 
       <NextUpCard section={nextSection} />
@@ -189,7 +189,7 @@ export function LiveSession() {
           type="button"
           onClick={advanceSection}
           disabled={!nextSection}
-          className="rounded-full bg-amber-500 px-6 py-2.5 font-medium text-neutral-950 disabled:opacity-30"
+          className="rounded-full bg-accent-500 px-6 py-2.5 font-medium text-neutral-950 disabled:opacity-30"
         >
           Next Section
         </button>
@@ -217,24 +217,20 @@ export function LiveSession() {
   )
 }
 
-function PressurePill({ net }: { net: number }) {
-  if (net === 0) {
-    return (
-      <span className="rounded-full border border-neutral-800 px-3 py-1 text-xs text-neutral-600">
-        Pressure: no change
-      </span>
-    )
-  }
+function PressureReadout({ net }: { net: number }) {
   const up = net > 0
+  const down = net < 0
   return (
-    <span
-      className={`rounded-full border px-3 py-1 text-xs ${
-        up ? 'border-amber-500/40 text-amber-300' : 'border-sky-500/40 text-sky-300'
-      }`}
-    >
-      Pressure {up ? '+' : ''}
-      {net}
-    </span>
+    <div className="flex flex-col items-center">
+      <span className="text-xs uppercase tracking-wide text-neutral-500">Pressure</span>
+      <span
+        className={`font-mono text-4xl font-semibold tabular-nums ${
+          up ? 'text-accent-300' : down ? 'text-sky-300' : 'text-neutral-600'
+        }`}
+      >
+        {net === 0 ? '—' : `${up ? '+' : ''}${net}`}
+      </span>
+    </div>
   )
 }
 
@@ -271,7 +267,7 @@ function RemoteSimulator() {
             type="button"
             onClick={toggleGamepad}
             className={`rounded-full border px-3 py-1 text-xs ${
-              gamepadOn ? 'border-amber-500/50 text-amber-300' : 'border-neutral-800 text-neutral-500'
+              gamepadOn ? 'border-accent-500/50 text-accent-300' : 'border-neutral-800 text-neutral-500'
             }`}
           >
             {gamepadOn ? 'Game controller: on' : 'Use game controller'}

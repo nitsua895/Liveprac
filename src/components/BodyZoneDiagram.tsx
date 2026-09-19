@@ -55,9 +55,9 @@ export function BodyZoneDiagram({
             d={path}
             className={`transition-all duration-700 ${
               isActive
-                ? 'fill-amber-400/90 stroke-amber-300'
+                ? 'fill-accent-400/90 stroke-accent-300'
                 : isNext
-                  ? 'fill-amber-500/15 stroke-amber-500/40'
+                  ? 'fill-accent-500/15 stroke-accent-500/40'
                   : 'fill-neutral-800/60 stroke-neutral-700'
             }`}
             strokeWidth={1.5}

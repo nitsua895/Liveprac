@@ -41,12 +41,12 @@ export function SectionListEditor({
           <input
             value={section.name}
             onChange={(e) => updateSection(index, { name: e.target.value })}
-            className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-neutral-200 outline-none focus:border-amber-500/50"
+            className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-neutral-200 outline-none focus:border-accent-500/50"
           />
           <select
             value={section.bodyZone}
             onChange={(e) => updateSection(index, { bodyZone: e.target.value as SectionTemplate['bodyZone'] })}
-            className="rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-sm text-neutral-300 outline-none focus:border-amber-500/50"
+            className="rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-sm text-neutral-300 outline-none focus:border-accent-500/50"
           >
             {BODY_ZONES.map((zone) => (
               <option key={zone} value={zone}>
@@ -59,7 +59,7 @@ export function SectionListEditor({
             min={1}
             value={Math.round(section.durationSec / 60)}
             onChange={(e) => updateSection(index, { durationSec: Number(e.target.value) * 60 })}
-            className="w-20 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-center text-neutral-200 outline-none focus:border-amber-500/50"
+            className="w-20 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-center text-neutral-200 outline-none focus:border-accent-500/50"
           />
           <span className="text-sm text-neutral-500">min</span>
           <button type="button" onClick={() => moveSection(index, -1)} className="px-2 text-neutral-500">

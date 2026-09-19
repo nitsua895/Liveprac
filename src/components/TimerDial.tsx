@@ -38,7 +38,7 @@ export function TimerDial({
           strokeDasharray={circumference}
           strokeDashoffset={dashoffset}
           className={`transition-[stroke-dashoffset] duration-500 ease-linear ${
-            over ? 'stroke-red-400' : 'stroke-amber-400'
+            over ? 'stroke-red-400' : 'stroke-accent-400'
           }`}
         />
       </svg>

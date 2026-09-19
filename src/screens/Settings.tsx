@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
+
 function IntegrationCard({
   title,
   status,
@@ -20,10 +23,46 @@ function IntegrationCard({
   )
 }
 
+function AccentPicker() {
+  const [accent, setAccent] = useState<AccentTheme>(() => getStoredAccent())
+
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+      <p className="mb-1 text-neutral-100">Accent Color</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        Applies everywhere (dials, glow, highlights) — try them in the actual treatment room lighting.
+      </p>
+      <div className="flex gap-3">
+        {ACCENT_THEMES.map((theme) => (
+          <button
+            key={theme.value}
+            type="button"
+            onClick={() => {
+              applyAccent(theme.value)
+              setAccent(theme.value)
+            }}
+            className={`flex flex-1 flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
+              accent === theme.value ? 'border-accent-400/60 bg-accent-500/10' : 'border-neutral-800'
+            }`}
+          >
+            <span
+              className="h-8 w-8 rounded-full"
+              style={{ background: ACCENT_PREVIEW_COLORS[theme.value] }}
+            />
+            <span className="text-xs text-neutral-400">{theme.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function Settings() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-light text-neutral-200">Settings</h1>
+
+      <AccentPicker />
 
       <IntegrationCard
         title="Bluetooth Remote"
