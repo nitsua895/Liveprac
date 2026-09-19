@@ -307,7 +307,7 @@ function PressureReadout({ net }: { net: number }) {
   const up = net > 0
   return (
     <span
-      className={`mt-1 font-mono text-3xl font-semibold tabular-nums ${
+      className={`mt-1 text-center font-mono text-lg font-semibold tabular-nums ${
         up ? 'text-orange-300' : 'text-sky-300'
       }`}
     >
