@@ -156,53 +156,52 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <span className="font-mono text-2xl tabular-nums text-neutral-500">
             {new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm uppercase tracking-wide text-neutral-600">Session</span>
-            <span
-              className={`font-mono text-2xl tabular-nums ${
-                sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
-              }`}
-            >
-              {sessionRemainingSec < 0 ? '+' : ''}
-              {formatClock(Math.abs(sessionRemainingSec))}
-            </span>
-          </div>
         </div>
       </header>
 
-      {/* Body zone beside the dial rather than stacked above it: fills the
-          landscape screen and keeps everything above the fold. */}
       <div
         key={activeSession.currentSectionIndex}
-        className="animate-section-enter grid grid-cols-[1fr_auto_1fr] items-center gap-6"
+        className="animate-section-enter grid grid-cols-[minmax(0,1fr)_15rem] items-center gap-10"
       >
-        <div className="flex flex-col items-center gap-3">
-          <BodyZoneDiagram activeZone={section.bodyZone} size={110} />
-          <p className="text-center text-2xl uppercase tracking-widest text-accent-400">
-            {section.name}
-          </p>
-        </div>
-
-        <TimerDial
-          sizePx={300}
-          remainingFraction={sectionRemainingSec / section.durationSec}
-          over={sectionRemainingSec < 0}
-          strokeWidth={12}
-          markers={dialMarkers}
-        >
-          <span
-            className={`font-mono text-7xl tabular-nums ${
-              sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
-            }`}
+        <div className="flex justify-end">
+          <TimerDial
+            sizePx={350}
+            remainingFraction={sectionRemainingSec / section.durationSec}
+            sessionFraction={sessionRemainingSec / totalDuration}
+            over={sectionRemainingSec < 0}
+            sessionOver={sessionRemainingSec < 0}
+            strokeWidth={12}
+            markers={dialMarkers}
           >
-            {formatClock(Math.abs(sectionRemainingSec))}
-          </span>
-          <PressureReadout net={netPressure} />
-        </TimerDial>
+            <BodyZoneDiagram activeZone={section.bodyZone} size={42} />
+            <span className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-accent-300">
+              {section.name}
+            </span>
+            <span
+              className={`mt-1 font-mono text-6xl tabular-nums ${
+                sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
+              }`}
+            >
+              {formatClock(Math.abs(sectionRemainingSec))}
+            </span>
+            <div className="mt-2 flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-neutral-600">
+              <span>Session</span>
+              <span
+                className={`font-mono text-sm tabular-nums ${
+                  sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
+                }`}
+              >
+                {sessionRemainingSec < 0 ? '+' : ''}
+                {formatClock(Math.abs(sessionRemainingSec))}
+              </span>
+            </div>
+            <PressureReadout net={netPressure} />
+          </TimerDial>
+        </div>
 
         {/* Controls live beside the dial: the two used mid-session are big and
             near the timer, the rest are tucked behind "More". */}
@@ -276,7 +275,7 @@ export function LiveSession() {
         </div>
       )}
 
-      <NowPlayingBar />
+      <NowPlayingBar compact />
     </div>
   )
 }
