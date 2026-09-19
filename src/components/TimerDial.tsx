@@ -42,8 +42,8 @@ export function TimerDial({
   const outerClamped = Math.max(0, Math.min(1, sessionFraction ?? 0))
 
   return (
-    <div className="relative" style={{ width: sizePx, height: sizePx }}>
-      <svg width={sizePx} height={sizePx} className="-rotate-90">
+    <div className="timer-dial relative" style={{ width: sizePx, maxWidth: '100%', aspectRatio: '1' }}>
+      <svg viewBox={`0 0 ${sizePx} ${sizePx}`} width="100%" height="100%" className="-rotate-90">
         {hasSessionRing && (
           <>
             <circle
@@ -101,7 +101,7 @@ export function TimerDial({
           <span
             key={marker.id}
             className="absolute"
-            style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
+            style={{ left: `${(x / sizePx) * 100}%`, top: `${(y / sizePx) * 100}%`, transform: 'translate(-50%, -50%)' }}
           >
             <EventMarker type={marker.type} sizePx={markerSize} />
           </span>
