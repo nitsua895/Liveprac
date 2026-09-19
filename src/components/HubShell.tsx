@@ -17,22 +17,26 @@ export function HubShell() {
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <AmbientGlow />
       <main
-        className={`mx-auto ${inSession ? 'max-w-6xl px-6 pb-6 pt-6' : 'max-w-4xl px-8 pb-28 pt-14'}`}
+        className={`mx-auto ${
+          inSession
+            ? 'max-w-6xl px-3 pb-4 pt-3 sm:px-5 sm:pb-6 sm:pt-5 lg:px-6 lg:pt-6'
+            : 'max-w-4xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:px-8 lg:pt-14'
+        }`}
       >
         <Outlet />
       </main>
       <nav
         hidden={inSession}
-        className="fixed inset-x-0 bottom-0 border-t border-neutral-900 bg-neutral-950/95 backdrop-blur"
+        className="app-nav fixed inset-x-0 bottom-0 border-t border-neutral-900 bg-neutral-950/95 backdrop-blur"
       >
-        <div className="mx-auto flex max-w-4xl justify-around px-4 py-3">
+        <div className="mx-auto flex max-w-4xl justify-around px-1 py-2 sm:px-4 sm:py-3">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `rounded-lg px-4 py-1.5 text-sm transition-colors ${
+                `rounded-lg px-2 py-1.5 text-xs transition-colors sm:px-4 sm:text-sm ${
                   isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
                 }`
               }
