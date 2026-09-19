@@ -79,6 +79,8 @@ export function Settings() {
         status="No public API"
         detail="Neither tool exposes a public integration API. Use 'Copy note for CRM' in the Client Log to paste session summaries into their notes field by hand."
       />
+
+      <p className="text-center text-xs text-neutral-600">build {__BUILD_ID__}</p>
     </div>
   )
 }

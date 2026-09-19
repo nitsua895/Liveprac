@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0a0a0b" />
+    <meta name="build-id" content="__BUILD_ID__" />
     <title>Liveprac</title>
     <!-- Inline so the page is never blank-white even if the stylesheet fails to load. -->
     <style>
@@ -39,6 +40,10 @@
         color: #f87171;
         word-break: break-word;
       }
+      #boot .build {
+        font-size: 12px;
+        color: #525252;
+      }
     </style>
   </head>
   <body>
@@ -46,7 +51,7 @@
     <!-- Removed by main.tsx once React mounts. If it stays up, something failed
          and the handler below prints the reason on screen — this app runs on an
          iPad with no usable dev console, so errors have to be visible in-page. -->
-    <div id="boot"><p class="msg">Loading Liveprac&hellip;</p></div>
+    <div id="boot"><p class="msg">Loading Liveprac&hellip;<br /><span class="build">build __BUILD_ID__</span></p></div>
     <script>
       (function () {
         function show(text) {
@@ -55,6 +60,7 @@
           boot.innerHTML =
             '<p class="msg"><span class="err">Liveprac failed to load.</span><br><br>' +
             String(text).replace(/</g, '&lt;') +
+            '<br><br><span class="build">build __BUILD_ID__</span>' +
             '<br><br>Screenshot this and send it over.</p>'
         }
         window.addEventListener('error', function (e) {

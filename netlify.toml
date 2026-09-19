@@ -2,6 +2,11 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  # Pinned so Netlify's default Node version changing can't silently break the
+  # build (Vite 8 needs a modern Node).
+  NODE_VERSION = "22"
+
 # Never let a device or CDN edge serve stale HTML pointing at asset filenames
 # from an older deploy — that failure mode renders a blank white page with no
 # way to recover. The HTML always revalidates; the hashed assets it points to
