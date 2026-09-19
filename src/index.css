@@ -191,6 +191,7 @@ html,
 body,
 #root {
   height: 100%;
+  min-height: 100dvh;
 }
 
 body {
@@ -201,6 +202,7 @@ body {
      full-screen from the home screen. */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
     env(safe-area-inset-left);
+  overflow-x: hidden;
 }
 
 /* Range inputs shared by the playback timeline and device volume. The filled
@@ -264,6 +266,23 @@ button, summary { min-height: 44px; }
 button:disabled { cursor: not-allowed; opacity: 0.4; }
 :focus-visible { outline: 2px solid var(--color-accent-200); outline-offset: 4px; }
 .session-stage { grid-template-columns: minmax(0, 1fr) 17rem; max-width: 780px; margin: 0 auto; width: 100%; }
+.section-editor-row {
+  grid-template-columns: auto auto minmax(10rem, 1fr) auto auto;
+  grid-template-areas: "drag body fields duration remove";
+}
+.section-drag { grid-area: drag; }
+.section-body { grid-area: body; }
+.section-fields { grid-area: fields; }
+.section-duration { grid-area: duration; }
+.section-remove { grid-area: remove; }
+.section-timeline {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(64 64 64) transparent;
+  overscroll-behavior-inline: contain;
+}
+.app-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 .cue-banner {
   position: absolute;
   top: calc(env(safe-area-inset-top) + 8px);
@@ -284,8 +303,52 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 @keyframes cue-hold { 0%, 88.8% { opacity: 1; } 100% { opacity: 0; } }
 .cue-glow { animation: cue-glow 3s ease-in-out 4; }
 @keyframes cue-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@media (orientation: portrait) and (max-width: 900px) {
+  .session-stage {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 560px;
+  }
+  .session-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .session-controls > :first-child {
+    grid-column: 1 / -1;
+  }
+  .section-timeline > div {
+    flex: 0 0 7rem;
+  }
+}
+
 @media (max-width: 700px) {
-  .session-stage { grid-template-columns: minmax(0, 1fr); }
+  .timer-dial {
+    width: min(88vw, 350px) !important;
+  }
+  .section-editor-row {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "drag body fields remove"
+      ". duration duration .";
+  }
+  .section-duration {
+    width: 100%;
+    margin-top: 2px;
+  }
+  .section-duration > span {
+    flex: 1;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .timer-dial {
+    width: min(68vh, 300px) !important;
+  }
+  .session-stage {
+    gap: 0.75rem;
+  }
+  .section-timeline > div {
+    flex: 0 0 6.5rem;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-section-enter, .ambient-vignette-flash { animation: none; }

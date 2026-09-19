@@ -54,7 +54,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
 
   if (!spotify.isConnected()) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-neutral-800/80 bg-neutral-900/45 px-4 py-3 text-neutral-600">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-neutral-800/80 bg-neutral-900/45 px-4 py-3 text-neutral-600">
         <Icon name="spotify" className="h-5 w-5" />
         <span className="text-xs font-medium uppercase tracking-[0.16em]">Spotify</span>
         <button
@@ -96,8 +96,8 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
 
   return (
     <section className="rounded-2xl border border-neutral-800/80 bg-neutral-900/55 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
-        <div className="h-12 w-12 overflow-hidden rounded-lg bg-neutral-800 shadow-lg">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-4">
+        <div className="hidden h-12 w-12 overflow-hidden rounded-lg bg-neutral-800 shadow-lg sm:block">
           {state.albumArtUrl ? (
             <img src={state.albumArtUrl} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -133,7 +133,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0 sm:gap-1">
           <PlayerButton label="Previous" onClick={() => void run(spotify.previous)}>
             <Icon name="previous" />
           </PlayerButton>
@@ -160,7 +160,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
       </div>
 
       {expanded && (
-        <div className="mt-3 flex items-center justify-between border-t border-neutral-800/70 pt-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-800/70 pt-3">
           <div className="flex items-center gap-1">
             <PlayerButton
               label={state.shuffle ? 'Shuffle on' : 'Shuffle off'}

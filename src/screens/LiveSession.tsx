@@ -138,8 +138,8 @@ export function LiveSession() {
 
   if (editingPlan) {
     return (
-      <div className="flex flex-col gap-6">
-        <header className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:gap-6">
+        <header className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-2xl font-light text-neutral-200">Edit Plan</h1>
           <p className="text-sm text-neutral-500">Changes apply to this session only</p>
         </header>
@@ -162,14 +162,14 @@ export function LiveSession() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <p className="text-base text-neutral-500">
+    <div className="flex flex-col gap-3 sm:gap-5">
+      <header className="flex min-w-0 items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-sm text-neutral-500 sm:text-base">
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
         <div className="flex items-center gap-4">
-          <span className="font-mono text-2xl tabular-nums text-neutral-500">
+          <span className="whitespace-nowrap font-mono text-lg tabular-nums text-neutral-500 sm:text-2xl">
             {new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </span>
         </div>
@@ -220,7 +220,7 @@ export function LiveSession() {
 
         {/* Controls live beside the dial: the two used mid-session are big and
             near the timer, the rest are tucked behind "More". */}
-        <div className="flex flex-col items-stretch gap-3">
+        <div className="session-controls flex flex-col items-stretch gap-3">
           <div
             className={`mb-2 min-h-24 rounded-xl border border-neutral-800 p-4 transition-opacity duration-700 ${
               showNext ? 'opacity-100' : 'pointer-events-none opacity-0'
