@@ -13,6 +13,8 @@ export function TimerDial({
   remainingFraction,
   over,
   strokeWidth,
+  sessionFraction,
+  sessionOver = false,
   markers = [],
   children,
 }: {
@@ -21,19 +23,52 @@ export function TimerDial({
   remainingFraction: number
   over: boolean
   strokeWidth: number
+  /** Optional outer ring for the full appointment, distinct from the section ring. */
+  sessionFraction?: number
+  sessionOver?: boolean
   /** Signals from the client, placed around the ring at the moment they happened. */
   markers?: DialMarker[]
   children: React.ReactNode
 }) {
-  const radius = sizePx / 2 - strokeWidth
+  const hasSessionRing = sessionFraction !== undefined
+  const outerStroke = Math.max(4, Math.round(strokeWidth * 0.45))
+  const outerRadius = sizePx / 2 - outerStroke
+  const radius = sizePx / 2 - strokeWidth - (hasSessionRing ? outerStroke + 8 : 0)
   const circumference = 2 * Math.PI * radius
   const clamped = Math.max(0, Math.min(1, remainingFraction))
   const dashoffset = circumference * (1 - clamped)
   const markerSize = Math.max(18, Math.round(sizePx * 0.075))
+  const outerCircumference = 2 * Math.PI * outerRadius
+  const outerClamped = Math.max(0, Math.min(1, sessionFraction ?? 0))
 
   return (
     <div className="relative" style={{ width: sizePx, height: sizePx }}>
       <svg width={sizePx} height={sizePx} className="-rotate-90">
+        {hasSessionRing && (
+          <>
+            <circle
+              cx={sizePx / 2}
+              cy={sizePx / 2}
+              r={outerRadius}
+              fill="none"
+              strokeWidth={outerStroke}
+              className="stroke-neutral-900"
+            />
+            <circle
+              cx={sizePx / 2}
+              cy={sizePx / 2}
+              r={outerRadius}
+              fill="none"
+              strokeWidth={outerStroke}
+              strokeLinecap="round"
+              strokeDasharray={outerCircumference}
+              strokeDashoffset={outerCircumference * (1 - outerClamped)}
+              className={`transition-[stroke-dashoffset] duration-500 ease-linear ${
+                sessionOver ? 'stroke-red-500/60' : 'stroke-accent-700/80'
+              }`}
+            />
+          </>
+        )}
         <circle
           cx={sizePx / 2}
           cy={sizePx / 2}
