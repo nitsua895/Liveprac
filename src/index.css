@@ -4,15 +4,16 @@
   --animate-pulse-slow: pulse-slow 1.8s ease-in-out infinite;
   --animate-section-enter: section-enter 500ms ease-out;
 
-  /* Muted on purpose — this runs on a screen in a dim room a few feet from
-     an undressed client's face. Full-saturation Tailwind amber/violet/red
-     read as glare at night; these are deliberately duller. */
-  --color-accent-200: hsl(38 32% 74%);
-  --color-accent-300: hsl(38 36% 62%);
-  --color-accent-400: hsl(36 45% 52%);
-  --color-accent-500: hsl(34 52% 46%);
-  --color-accent-700: hsl(32 42% 32%);
-  --color-accent-900: hsl(30 38% 16%);
+  /* Deep violet is the default. Muted on purpose — this runs on a screen in a
+     dim room a few feet from an undressed client's face, so full-saturation
+     colour reads as glare at night. Every palette below shares the same
+     lightness per step, so switching changes hue without changing glare. */
+  --color-accent-200: hsl(262 28% 76%);
+  --color-accent-300: hsl(262 30% 65%);
+  --color-accent-400: hsl(262 34% 55%);
+  --color-accent-500: hsl(262 38% 47%);
+  --color-accent-700: hsl(262 32% 32%);
+  --color-accent-900: hsl(262 28% 16%);
 }
 
 /* Pre-mixed rgba rather than color-mix(), which needs a newer WebKit than
@@ -55,8 +56,8 @@
   --cue-text: rgb(206, 186, 245);
 }
 
-/* Alternate accent palettes — same lightness per step, different hue, so
-   swapping never changes the overall brightness/glare, just the color.
+/* Alternate accent palettes. Cue colours are semantic (see [data-tone] above)
+   and deliberately ignore these — only the UI chrome changes.
    Toggle from Settings; see src/lib/theme.ts. */
 :root[data-accent='violet'] {
   --color-accent-200: hsl(262 28% 76%);
@@ -65,8 +66,42 @@
   --color-accent-500: hsl(262 38% 47%);
   --color-accent-700: hsl(262 32% 32%);
   --color-accent-900: hsl(262 28% 16%);
-  --vignette-soft: rgba(108, 74, 165, 0.4);
-  --vignette-flash: rgba(146, 116, 196, 0.65);
+}
+
+:root[data-accent='indigo'] {
+  --color-accent-200: hsl(222 30% 76%);
+  --color-accent-300: hsl(222 32% 65%);
+  --color-accent-400: hsl(222 38% 55%);
+  --color-accent-500: hsl(222 42% 47%);
+  --color-accent-700: hsl(222 34% 32%);
+  --color-accent-900: hsl(222 30% 16%);
+}
+
+:root[data-accent='teal'] {
+  --color-accent-200: hsl(180 26% 76%);
+  --color-accent-300: hsl(180 28% 65%);
+  --color-accent-400: hsl(180 32% 55%);
+  --color-accent-500: hsl(180 36% 47%);
+  --color-accent-700: hsl(180 30% 32%);
+  --color-accent-900: hsl(180 26% 16%);
+}
+
+:root[data-accent='sage'] {
+  --color-accent-200: hsl(135 20% 76%);
+  --color-accent-300: hsl(135 22% 65%);
+  --color-accent-400: hsl(135 26% 55%);
+  --color-accent-500: hsl(135 28% 47%);
+  --color-accent-700: hsl(135 24% 32%);
+  --color-accent-900: hsl(135 22% 16%);
+}
+
+:root[data-accent='amber'] {
+  --color-accent-200: hsl(38 32% 76%);
+  --color-accent-300: hsl(38 36% 65%);
+  --color-accent-400: hsl(36 45% 55%);
+  --color-accent-500: hsl(34 52% 47%);
+  --color-accent-700: hsl(32 42% 32%);
+  --color-accent-900: hsl(30 38% 16%);
 }
 
 :root[data-accent='crimson'] {
@@ -76,8 +111,6 @@
   --color-accent-500: hsl(350 42% 47%);
   --color-accent-700: hsl(350 36% 32%);
   --color-accent-900: hsl(350 32% 16%);
-  --vignette-soft: rgba(170, 70, 86, 0.4);
-  --vignette-flash: rgba(200, 110, 126, 0.65);
 }
 
 /* Wide swing and a faster cycle than a decorative "breathing" effect — this

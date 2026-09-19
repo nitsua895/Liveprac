@@ -32,7 +32,7 @@ function AccentPicker() {
       <p className="mb-4 text-sm text-neutral-500">
         Applies everywhere (dials, glow, highlights) — try them in the actual treatment room lighting.
       </p>
-      <div className="flex gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {ACCENT_THEMES.map((theme) => (
           <button
             key={theme.value}
@@ -41,7 +41,7 @@ function AccentPicker() {
               applyAccent(theme.value)
               setAccent(theme.value)
             }}
-            className={`flex flex-1 flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
+            className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
               accent === theme.value ? 'border-accent-400/60 bg-accent-500/10' : 'border-neutral-800'
             }`}
           >

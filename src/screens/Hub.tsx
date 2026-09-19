@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { NowPlayingBar } from '../components/NowPlayingBar'
 import { useAppState } from '../state/AppStateContext'
 
@@ -9,20 +9,9 @@ export function Hub() {
   const [pickingTemplateId, setPickingTemplateId] = useState<string | null>(null)
   const [newClientName, setNewClientName] = useState('')
 
-  if (activeSession) {
-    return (
-      <div className="flex flex-col items-center gap-4 pt-24 text-center">
-        <p className="text-neutral-400">A session is already running.</p>
-        <button
-          type="button"
-          onClick={() => navigate('/session')}
-          className="rounded-full bg-accent-500 px-6 py-3 font-medium text-neutral-950"
-        >
-          Return to session
-        </button>
-      </div>
-    )
-  }
+  // Straight back into a running session — reopening the app mid-massage
+  // shouldn't cost a tap. "End" on the session screen is the way out.
+  if (activeSession) return <Navigate to="/session" replace />
 
   function beginWith(clientId: string | null) {
     if (!pickingTemplateId) return
