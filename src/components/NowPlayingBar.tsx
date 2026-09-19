@@ -18,9 +18,12 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
 
   useEffect(() => {
     if (!spotify.isConnected()) return
-    void refresh()
+    const initial = setTimeout(() => void refresh(), 0)
     const interval = setInterval(() => void refresh(), POLL_MS)
-    return () => clearInterval(interval)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
   }, [refresh])
 
   // Keep the scrubber moving smoothly between Spotify's five-second updates.
