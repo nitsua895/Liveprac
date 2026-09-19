@@ -12,7 +12,7 @@ export function SectionTimeline({
   currentIndex: number
 }) {
   return (
-    <div className="flex w-full gap-2">
+    <div className="section-timeline flex w-full gap-2 overflow-x-auto pb-1">
       {sections.map((section, index) => {
         const isCurrent = index === currentIndex
         const isNext = index === currentIndex + 1
