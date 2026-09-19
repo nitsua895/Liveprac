@@ -118,7 +118,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (nextIndex >= prev.sections.length) {
         return prev
       }
-      return { ...prev, currentSectionIndex: nextIndex, sectionStartedAt: Date.now() }
+      return { ...prev, currentSectionIndex: nextIndex, sectionStartedAt: prev.pausedAt ?? Date.now() }
     })
   }
 
@@ -142,7 +142,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       return {
         ...prev,
         currentSectionIndex: prev.currentSectionIndex - 1,
-        sectionStartedAt: Date.now(),
+        sectionStartedAt: prev.pausedAt ?? Date.now(),
       }
     })
   }
@@ -177,9 +177,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setAmbientCues((prev) => {
       const match = prev.find((c) => c.tone === cue.tone && c.message === cue.message)
       if (match) {
-        return prev.map((c) =>
-          c.id === match.id ? { ...c, count: c.count + 1, createdAt: Date.now() } : c,
-        )
+        return [
+          ...prev.filter((c) => c.id !== match.id),
+          { ...match, count: match.count + 1, createdAt: Date.now() },
+        ]
       }
       return [...prev, { ...cue, id: makeCueId(), createdAt: Date.now(), count: 1 }]
     })
