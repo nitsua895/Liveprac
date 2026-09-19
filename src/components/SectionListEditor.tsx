@@ -135,7 +135,11 @@ export function SectionListEditor({
             }}
             className="cursor-grab touch-none px-2 text-2xl tracking-[-0.18em] text-neutral-500 active:cursor-grabbing"
           >
-            ⠿
+            <svg viewBox="0 0 18 24" width="18" height="24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="5" r="1.5" /><circle cx="13" cy="5" r="1.5" />
+              <circle cx="5" cy="12" r="1.5" /><circle cx="13" cy="12" r="1.5" />
+              <circle cx="5" cy="19" r="1.5" /><circle cx="13" cy="19" r="1.5" />
+            </svg>
           </button>
           <BodyZoneDiagram activeZone={section.bodyZone} size={34} />
           <div className="min-w-0">
