@@ -36,8 +36,16 @@ export interface NowPlayingState {
   isConnected: boolean
   trackName: string | null
   artistName: string | null
+  albumName: string | null
+  albumArtUrl: string | null
+  trackUri: string | null
   isPlaying: boolean
+  progressMs: number
+  durationMs: number
   volumePercent: number | null
+  deviceName: string | null
+  shuffle: boolean
+  repeat: 'off' | 'track' | 'context'
   /** Set when Spotify rejects a command, e.g. no active device or not Premium. */
   error: string | null
 }
@@ -46,8 +54,16 @@ export const EMPTY_STATE: NowPlayingState = {
   isConnected: false,
   trackName: null,
   artistName: null,
+  albumName: null,
+  albumArtUrl: null,
+  trackUri: null,
   isPlaying: false,
+  progressMs: 0,
+  durationMs: 0,
   volumePercent: null,
+  deviceName: null,
+  shuffle: false,
+  repeat: 'off',
   error: null,
 }
 
@@ -228,8 +244,16 @@ export async function fetchState(): Promise<NowPlayingState> {
     isConnected: true,
     trackName: json.item?.name ?? null,
     artistName: json.item?.artists?.map((a: { name: string }) => a.name).join(', ') ?? null,
+    albumName: json.item?.album?.name ?? null,
+    albumArtUrl: json.item?.album?.images?.[1]?.url ?? json.item?.album?.images?.[0]?.url ?? null,
+    trackUri: json.item?.uri ?? null,
     isPlaying: Boolean(json.is_playing),
+    progressMs: json.progress_ms ?? 0,
+    durationMs: json.item?.duration_ms ?? 0,
     volumePercent: json.device?.volume_percent ?? null,
+    deviceName: json.device?.name ?? null,
+    shuffle: Boolean(json.shuffle_state),
+    repeat: json.repeat_state ?? 'off',
     error: null,
   }
 }
@@ -250,3 +274,9 @@ export const next = () => command('/me/player/next', 'POST')
 export const previous = () => command('/me/player/previous', 'POST')
 export const setVolume = (percent: number) =>
   command(`/me/player/volume?volume_percent=${Math.round(percent)}`, 'PUT')
+export const seek = (positionMs: number) =>
+  command(`/me/player/seek?position_ms=${Math.max(0, Math.round(positionMs))}`, 'PUT')
+export const setShuffle = (enabled: boolean) =>
+  command(`/me/player/shuffle?state=${enabled}`, 'PUT')
+export const setRepeat = (state: NowPlayingState['repeat']) =>
+  command(`/me/player/repeat?state=${state}`, 'PUT')
