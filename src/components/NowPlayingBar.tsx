@@ -9,11 +9,16 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(!compact)
   const [connecting, setConnecting] = useState(false)
+  const [devices, setDevices] = useState<spotify.SpotifyDevice[]>([])
 
   const refresh = useCallback(async () => {
     try {
-      const next = await spotify.fetchState()
+      const [next, availableDevices] = await Promise.all([
+        spotify.fetchState(),
+        spotify.fetchDevices(),
+      ])
       setState(next)
+      setDevices(availableDevices)
       setError(next.error)
     } catch {
       setError('Spotify is unreachable. Check your connection; session timing is unaffected.')
@@ -80,6 +85,16 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   const volume = state.volumePercent ?? 0
   const repeatLabel =
     state.repeat === 'track' ? 'Repeat track' : state.repeat === 'context' ? 'Repeat all' : 'Repeat off'
+  const volumeHelp = !state.supportsVolume && state.deviceName
+    ? state.deviceType === 'smartphone'
+      ? 'Phone volume uses its physical buttons'
+      : `Spotify does not expose volume for ${state.deviceName}`
+    : null
+
+  function commitVolume(value: string) {
+    if (!state.supportsVolume) return
+    void run(() => spotify.setVolume(Number(value), state.deviceId))
+  }
 
   function setLocal<K extends keyof spotify.NowPlayingState>(
     key: K,
@@ -161,57 +176,73 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
 
       {expanded && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-800/70 pt-3">
-          <div className="flex items-center gap-1">
-            <PlayerButton
-              label={state.shuffle ? 'Shuffle on' : 'Shuffle off'}
-              active={state.shuffle}
-              onClick={() => {
-                const next = !state.shuffle
-                setLocal('shuffle', next)
-                void run(() => spotify.setShuffle(next))
-              }}
-            >
-              <Icon name="shuffle" />
-            </PlayerButton>
-            <PlayerButton label={repeatLabel} active={state.repeat !== 'off'} onClick={cycleRepeat}>
-              <span className="relative">
-                <Icon name="repeat" />
-                {state.repeat === 'track' && (
-                  <span className="absolute -right-1 -top-1 text-[8px] font-bold">1</span>
-                )}
-              </span>
-            </PlayerButton>
-            {state.deviceName && (
-              <span className="ml-2 hidden text-xs text-neutral-600 sm:inline">
-                Playing on {state.deviceName}
-              </span>
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <div className="flex items-center gap-1">
+              <PlayerButton
+                label={state.shuffle ? 'Shuffle on' : 'Shuffle off'}
+                active={state.shuffle}
+                onClick={() => {
+                  const next = !state.shuffle
+                  setLocal('shuffle', next)
+                  void run(() => spotify.setShuffle(next))
+                }}
+              >
+                <Icon name="shuffle" />
+              </PlayerButton>
+              <PlayerButton label={repeatLabel} active={state.repeat !== 'off'} onClick={cycleRepeat}>
+                <span className="relative">
+                  <Icon name="repeat" />
+                  {state.repeat === 'track' && (
+                    <span className="absolute -right-1 -top-1 text-[8px] font-bold">1</span>
+                  )}
+                </span>
+              </PlayerButton>
+            </div>
+            {devices.length > 0 && (
+              <label className="ml-1 flex min-w-0 items-center gap-2 text-xs text-neutral-600">
+                <span className="sr-only">Spotify output</span>
+                <select
+                  aria-label="Spotify output"
+                  value={state.deviceId ?? ''}
+                  onChange={(event) => {
+                    const deviceId = event.target.value
+                    if (!deviceId || deviceId === state.deviceId) return
+                    void run(() => spotify.transferPlayback(deviceId, state.isPlaying))
+                  }}
+                  className="max-w-44 truncate rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs text-neutral-400"
+                >
+                  {!state.deviceId && <option value="">Choose output</option>}
+                  {devices.filter((device) => device.id && !device.isRestricted).map((device) => (
+                    <option key={device.id} value={device.id ?? ''}>
+                      {device.name}{device.supportsVolume ? '' : ' · device volume'}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
           </div>
 
           <div className="flex min-w-40 flex-col items-end gap-1 text-neutral-500">
-          <label className="flex items-center gap-2">
-            <Icon name={volume === 0 ? 'volumeOff' : 'volume'} className="h-4 w-4 shrink-0" />
-            <input
-              aria-label="Device volume"
-              type="range"
-              min={0}
-              max={100}
-              value={volume}
-              disabled={!state.supportsVolume}
-              onChange={(event) => setLocal('volumePercent', Number(event.target.value))}
-              onPointerUp={(event) =>
-                void run(() => spotify.setVolume(Number(event.currentTarget.value), state.deviceId))
-              }
-              onKeyUp={(event) =>
-                void run(() => spotify.setVolume(Number(event.currentTarget.value), state.deviceId))
-              }
-              className="spotify-range w-28"
-              style={{ '--range-progress': `${volume}%` } as CSSProperties}
-            />
-          </label>
-          {!state.supportsVolume && state.deviceName && (
-            <span className="text-[10px] text-neutral-600">Volume unavailable for {state.deviceName}</span>
-          )}
+            <label className="flex items-center gap-2">
+              <Icon name={volume === 0 ? 'volumeOff' : 'volume'} className="h-4 w-4 shrink-0" />
+              <input
+                aria-label="Device volume"
+                type="range"
+                min={0}
+                max={100}
+                value={volume}
+                disabled={!state.supportsVolume}
+                onChange={(event) => setLocal('volumePercent', Number(event.target.value))}
+                onPointerUp={(event) => commitVolume(event.currentTarget.value)}
+                onTouchEnd={(event) => commitVolume(event.currentTarget.value)}
+                onMouseUp={(event) => commitVolume(event.currentTarget.value)}
+                onKeyUp={(event) => commitVolume(event.currentTarget.value)}
+                onBlur={(event) => commitVolume(event.currentTarget.value)}
+                className="spotify-range w-28"
+                style={{ '--range-progress': `${volume}%` } as CSSProperties}
+              />
+            </label>
+            {volumeHelp && <span className="max-w-56 text-right text-[10px] text-neutral-600">{volumeHelp}</span>}
           </div>
         </div>
       )}
