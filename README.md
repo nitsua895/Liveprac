@@ -7,11 +7,18 @@ client without breaking the flow of a session.
 
 ## Live at
 
-https://nitsua895.github.io/Liveprac/ — auto-deployed by
-`.github/workflows/deploy.yml` on every push to this branch. **One manual
-step is required once**: in the repo's Settings → Pages, set "Build and
-deployment → Source" to "GitHub Actions" (can't be done from a git push).
-Until that's flipped, the workflow will run but the site won't be reachable.
+**https://liveprac.netlify.app** — Netlify builds and deploys automatically on
+every push to this branch. No login needed to view it; send the link to anyone.
+
+Hosting config lives in `netlify.toml`: the SPA rewrite (so deep links like
+`/session` work), and cache headers that keep `index.html` always revalidating
+while letting the content-hashed assets cache forever. That header split
+matters — serving stale HTML that points at asset filenames from an older
+deploy renders a blank white page, which is exactly what went wrong on the
+previous GitHub Pages setup.
+
+To add it to an iPad home screen: open the URL in Safari → Share → "Add to
+Home Screen". It launches full-screen via `public/manifest.json`.
 
 ## Status: Phase 1 scaffold
 
@@ -75,18 +82,18 @@ npm run build     # typecheck + production build
 npm run lint
 ```
 
-To try it as a docked app on an iPad: open the dev/deployed URL in Safari,
-share → "Add to Home Screen". `public/manifest.json` and the meta tags in
-`index.html` make it launch full-screen without browser chrome.
-
 Data (templates, clients, preference events) persists to `localStorage` —
-fine for a single kiosk iPad, not for syncing across devices.
+fine for a single kiosk iPad, not for syncing across devices. Note that an
+iPad home-screen web app keeps its own storage, separate from Safari tabs.
+
+If the app ever fails to load, `index.html` prints the reason on screen
+(inline styles + an error handler, since there's no usable dev console on an
+iPad) rather than showing a blank page.
 
 ## Next steps
 
-1. Flip the GitHub Pages source setting (above) and try the live link on an
-   actual iPad — give feedback on layout, dial sizes, and what should be
-   removed to streamline further.
+1. Try the live link on an actual iPad — give feedback on layout, dial sizes,
+   and what should be removed to streamline further.
 2. Sit down with Shelby and replace the default templates with her real
    section sequence and per-section timing.
 3. Pick and buy remote hardware (Flic 2 or similar), wrap this app in

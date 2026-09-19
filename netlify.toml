@@ -1,0 +1,23 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Never let a device or CDN edge serve stale HTML pointing at asset filenames
+# from an older deploy — that failure mode renders a blank white page with no
+# way to recover. The HTML always revalidates; the hashed assets it points to
+# are safe to cache forever because their names change when they change.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Client-side routing: serve the app for any path so deep links work.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import { AppStateProvider } from './state/AppStateContext'
@@ -8,15 +8,14 @@ import { applyAccent, getStoredAccent } from './lib/theme'
 
 applyAccent(getStoredAccent())
 
-// HashRouter (not BrowserRouter) because this is hosted on GitHub Pages as a
-// static site with no server-side rewrite for client-side routes.
+// Real paths, not hash routes — netlify.toml rewrites every path to index.html.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HashRouter>
+    <BrowserRouter>
       <AppStateProvider>
         <App />
       </AppStateProvider>
-    </HashRouter>
+    </BrowserRouter>
   </StrictMode>,
 )
 
