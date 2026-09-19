@@ -59,13 +59,11 @@ function AccentPicker() {
 }
 
 function SpotifyCard() {
-  const [clientId, setClientIdValue] = useState(() => spotify.getClientId())
   const [connected, setConnected] = useState(() => spotify.isConnected())
   const [error, setError] = useState<string | null>(null)
 
   async function connect() {
     try {
-      spotify.setClientId(clientId)
       await spotify.beginAuth()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -82,9 +80,8 @@ function SpotifyCard() {
       </div>
       <p className="mb-4 text-sm text-neutral-500">
         Controls whatever device Spotify is already playing on — the music comes out of the room's
-        speakers, not the iPad. Needs a Spotify app registered at developer.spotify.com with{' '}
-        <code className="text-neutral-400">{spotify.redirectUri()}</code> added as a redirect URI,
-        and a Premium account (Spotify blocks playback control on free accounts).
+        speakers, not the iPad. Liveprac's Spotify app is built in; a Premium account is required
+        because Spotify blocks playback control on free accounts.
       </p>
 
       {connected ? (
@@ -99,22 +96,13 @@ function SpotifyCard() {
           Disconnect
         </button>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            value={clientId}
-            onChange={(e) => setClientIdValue(e.target.value)}
-            placeholder="Spotify Client ID"
-            className="min-w-64 flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
-          />
-          <button
-            type="button"
-            disabled={!clientId.trim()}
-            onClick={() => void connect()}
-            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
-          >
-            Connect
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => void connect()}
+          className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950"
+        >
+          Connect Spotify
+        </button>
       )}
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
     </div>
