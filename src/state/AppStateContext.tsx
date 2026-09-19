@@ -19,6 +19,7 @@ interface AppState {
   events: PreferenceEvent[]
   activeSession: ActiveSession | null
   ambientCues: AmbientCue[]
+  cueBump: number
 
   saveTemplate: (template: SessionTemplate) => void
   deleteTemplate: (templateId: string) => void
@@ -32,7 +33,7 @@ interface AppState {
   updateRuntimeSections: (sections: SectionTemplate[]) => void
   logPreferenceEvent: (type: PreferenceEventType, magnitude?: number) => void
   dismissAmbientCue: (cueId: string) => void
-  pushAmbientCue: (cue: Omit<AmbientCue, 'id' | 'createdAt'>) => void
+  pushAmbientCue: (cue: Omit<AmbientCue, 'id' | 'createdAt' | 'count'>) => void
   eventsForSession: (instanceId: string) => PreferenceEvent[]
 }
 
@@ -54,6 +55,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     loadJSON('activeSession', null),
   )
   const [ambientCues, setAmbientCues] = useState<AmbientCue[]>([])
+  /** Increments on every signal, including repeats folded into an existing cue,
+   *  so the glow can re-flash even when no new cue was added. */
+  const [cueBump, setCueBump] = useState(0)
 
   useEffect(() => {
     if (templates.length === 0) {
@@ -165,8 +169,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setAmbientCues([])
   }
 
-  function pushAmbientCue(cue: Omit<AmbientCue, 'id' | 'createdAt'>) {
-    setAmbientCues((prev) => [...prev, { ...cue, id: makeCueId(), createdAt: Date.now() }])
+  // Repeats of the same signal fold into the existing cue instead of stacking:
+  // a client turning the dial up five times is one request, not five
+  // notifications to tap away.
+  function pushAmbientCue(cue: Omit<AmbientCue, 'id' | 'createdAt' | 'count'>) {
+    setCueBump((n) => n + 1)
+    setAmbientCues((prev) => {
+      const match = prev.find((c) => c.tone === cue.tone && c.message === cue.message)
+      if (match) {
+        return prev.map((c) =>
+          c.id === match.id ? { ...c, count: c.count + 1, createdAt: Date.now() } : c,
+        )
+      }
+      return [...prev, { ...cue, id: makeCueId(), createdAt: Date.now(), count: 1 }]
+    })
   }
 
   function dismissAmbientCue(cueId: string) {
@@ -215,6 +231,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       events,
       activeSession,
       ambientCues,
+      cueBump,
       saveTemplate,
       deleteTemplate,
       addClient,
@@ -230,7 +247,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       pushAmbientCue,
       eventsForSession,
     }),
-    [templates, clients, events, activeSession, ambientCues],
+    [templates, clients, events, activeSession, ambientCues, cueBump],
   )
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

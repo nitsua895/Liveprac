@@ -108,6 +108,25 @@ export function LiveSession() {
     return sum
   }, 0)
 
+  const sessionEvents = events.filter((e) => e.sessionInstanceId === activeSession.instanceId)
+  // Where each signal landed within the current section, for the ring markers.
+  // Signals of the same type landing within ~2% of the ring collapse into one
+  // marker, so a burst of dial turns doesn't pile up in the same spot.
+  const dialMarkers = Object.values(
+    currentSectionEvents.reduce<Record<string, { id: string; type: typeof currentSectionEvents[number]['type']; fraction: number }>>(
+      (acc, e) => {
+        const fraction = Math.min(
+          1,
+          Math.max(0, (e.timestamp - activeSession.sectionStartedAt) / 1000 / section.durationSec),
+        )
+        const key = `${e.type}:${Math.round(fraction * 50)}`
+        if (!acc[key]) acc[key] = { id: e.id, type: e.type, fraction }
+        return acc
+      },
+      {},
+    ),
+  )
+
   if (editingPlan) {
     return (
       <div className="flex flex-col gap-6">
@@ -136,16 +155,21 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
-        <div className="flex items-center gap-2">
-          <span className="text-sm uppercase tracking-wide text-neutral-600">Session</span>
-          <span
-            className={`font-mono text-2xl tabular-nums ${
-              sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
-            }`}
-          >
-            {sessionRemainingSec < 0 ? '+' : ''}
-            {formatClock(Math.abs(sessionRemainingSec))}
+        <div className="flex items-center gap-5">
+          <span className="font-mono text-2xl tabular-nums text-neutral-500">
+            {new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm uppercase tracking-wide text-neutral-600">Session</span>
+            <span
+              className={`font-mono text-2xl tabular-nums ${
+                sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
+              }`}
+            >
+              {sessionRemainingSec < 0 ? '+' : ''}
+              {formatClock(Math.abs(sessionRemainingSec))}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -167,6 +191,7 @@ export function LiveSession() {
           remainingFraction={sectionRemainingSec / section.durationSec}
           over={sectionRemainingSec < 0}
           strokeWidth={12}
+          markers={dialMarkers}
         >
           <span
             className={`font-mono text-7xl tabular-nums ${
@@ -190,7 +215,11 @@ export function LiveSession() {
         </div>
       </div>
 
-      <SectionTimeline sections={activeSession.sections} currentIndex={activeSession.currentSectionIndex} />
+      <SectionTimeline
+        sections={activeSession.sections}
+        currentIndex={activeSession.currentSectionIndex}
+        events={sessionEvents}
+      />
 
       <div className="flex flex-wrap justify-center gap-3">
         <button

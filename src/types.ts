@@ -64,4 +64,6 @@ export interface AmbientCue {
   tone: CueTone
   message: string
   createdAt: number
+  /** Repeats of the same signal fold into one cue rather than queueing up. */
+  count: number
 }

@@ -197,4 +197,8 @@ body {
   margin: 0;
   background: #0a0a0b;
   -webkit-font-smoothing: antialiased;
+  /* Keeps content clear of the iPad status bar (clock, battery) when launched
+     full-screen from the home screen. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
 }
