@@ -9,8 +9,8 @@
  * Auth is the PKCE authorization-code flow, which needs no client secret and
  * so works from a static site. Two things are required before it does
  * anything:
- *   1. A Spotify app registered at developer.spotify.com, with this site's
- *      origin added as a redirect URI. Its Client ID goes in Settings.
+ *   1. The Liveprac Spotify app, with this site's origin registered as a
+ *      redirect URI. Its public Client ID is bundled below.
  *   2. A Spotify Premium account — the playback-control endpoints reject
  *      free accounts.
  */
@@ -18,10 +18,12 @@
 const AUTH_URL = 'https://accounts.spotify.com/authorize'
 const TOKEN_URL = 'https://accounts.spotify.com/api/token'
 const API = 'https://api.spotify.com/v1'
+// Spotify client IDs identify an app but do not grant access and are safe to
+// ship in browser code. PKCE keeps authentication secret-free.
+const CLIENT_ID = 'eea47657938545eba54a5e6bf63b4c50'
 const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
 
 const KEYS = {
-  clientId: 'liveprac:v1:spotifyClientId',
   verifier: 'liveprac:v1:spotifyVerifier',
   token: 'liveprac:v1:spotifyToken',
 }
@@ -84,14 +86,6 @@ function write(key: string, value: string | null) {
   }
 }
 
-export function getClientId(): string {
-  return read(KEYS.clientId) ?? (import.meta.env.VITE_SPOTIFY_CLIENT_ID as string | undefined) ?? ''
-}
-
-export function setClientId(id: string) {
-  write(KEYS.clientId, id.trim() || null)
-}
-
 /** Must exactly match a redirect URI registered on the Spotify app. */
 export function redirectUri(): string {
   return `${window.location.origin}/`
@@ -130,9 +124,6 @@ function base64url(buffer: ArrayBuffer): string {
 }
 
 export async function beginAuth(): Promise<void> {
-  const clientId = getClientId()
-  if (!clientId) throw new Error('Add your Spotify Client ID in Settings first.')
-
   const verifier = randomString(48)
   write(KEYS.verifier, verifier)
   const challenge = base64url(
@@ -140,7 +131,7 @@ export async function beginAuth(): Promise<void> {
   )
 
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id: CLIENT_ID,
     response_type: 'code',
     redirect_uri: redirectUri(),
     code_challenge_method: 'S256',
@@ -157,13 +148,12 @@ export async function completeAuthFromUrl(): Promise<boolean> {
   if (!code) return false
 
   const verifier = read(KEYS.verifier)
-  const clientId = getClientId()
   // Clear the query string either way so a reload doesn't retry a used code.
   window.history.replaceState({}, '', window.location.pathname)
-  if (!verifier || !clientId) return false
+  if (!verifier) return false
 
   const body = new URLSearchParams({
-    client_id: clientId,
+    client_id: CLIENT_ID,
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri(),
@@ -201,7 +191,7 @@ async function freshAccessToken(): Promise<string | null> {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: getClientId(),
+      client_id: CLIENT_ID,
       grant_type: 'refresh_token',
       refresh_token: token.refreshToken,
     }),
