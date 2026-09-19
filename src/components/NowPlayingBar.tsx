@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
 import * as spotify from '../lib/spotify'
 
 const POLL_MS = 5000
@@ -9,6 +8,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   const [state, setState] = useState<spotify.NowPlayingState>(spotify.EMPTY_STATE)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(!compact)
+  const [connecting, setConnecting] = useState(false)
 
   const refresh = useCallback(async () => {
     const next = await spotify.fetchState()
@@ -49,9 +49,21 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
       <div className="flex items-center gap-3 rounded-2xl border border-neutral-800/80 bg-neutral-900/45 px-4 py-3 text-neutral-600">
         <Icon name="spotify" className="h-5 w-5" />
         <span className="text-xs font-medium uppercase tracking-[0.16em]">Spotify</span>
-        <Link to="/settings" className="text-sm text-neutral-400 underline-offset-4 hover:text-neutral-200 hover:underline">
-          Connect account
-        </Link>
+        <button
+          type="button"
+          disabled={connecting}
+          onClick={() => {
+            setConnecting(true)
+            void spotify.beginAuth().catch((reason: unknown) => {
+              setConnecting(false)
+              setError(reason instanceof Error ? reason.message : String(reason))
+            })
+          }}
+          className="text-sm text-neutral-300 transition hover:text-white disabled:opacity-50"
+        >
+          {connecting ? 'Connecting…' : 'Connect account'}
+        </button>
+        {error && <span className="text-xs text-red-400">{error}</span>}
       </div>
     )
   }
