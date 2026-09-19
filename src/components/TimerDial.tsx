@@ -62,7 +62,7 @@ export function TimerDial({
               strokeWidth={outerStroke}
               strokeLinecap="round"
               strokeDasharray={outerCircumference}
-              strokeDashoffset={outerCircumference * (1 - outerClamped)}
+              strokeDashoffset={-outerCircumference * (1 - outerClamped)}
               className={`transition-[stroke-dashoffset] duration-500 ease-linear ${
                 sessionOver ? 'stroke-red-500/60' : 'stroke-accent-700/80'
               }`}
@@ -85,7 +85,7 @@ export function TimerDial({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={dashoffset}
+          strokeDashoffset={-dashoffset}
           className={`transition-[stroke-dashoffset] duration-500 ease-linear ${
             over ? 'stroke-red-400' : 'stroke-accent-400'
           }`}
