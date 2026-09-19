@@ -2,6 +2,7 @@
 
 @theme {
   --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+  --animate-section-enter: section-enter 500ms ease-out;
 }
 
 @keyframes pulse-slow {
@@ -11,6 +12,17 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

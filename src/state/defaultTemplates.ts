@@ -1,4 +1,4 @@
-import type { SectionTemplate, SessionTemplate } from '../types'
+import type { BodyZone, SectionTemplate, SessionTemplate } from '../types'
 
 let idCounter = 0
 function id(prefix: string): string {
@@ -6,11 +6,12 @@ function id(prefix: string): string {
   return `${prefix}_${Date.now()}_${idCounter}`
 }
 
-function sections(spec: [string, number][]): SectionTemplate[] {
-  return spec.map(([name, minutes]) => ({
+function sections(spec: [string, number, BodyZone][]): SectionTemplate[] {
+  return spec.map(([name, minutes, bodyZone]) => ({
     id: id('section'),
     name,
     durationSec: minutes * 60,
+    bodyZone,
   }))
 }
 
@@ -23,14 +24,25 @@ export function buildDefaultTemplates(): SessionTemplate[] {
   return [
     {
       id: id('template'),
+      name: '15-Minute Session',
+      createdAt: Date.now(),
+      sections: sections([
+        ['Back', 5, 'back'],
+        ['Shoulders & Neck', 4, 'neck_shoulders'],
+        ['Arms & Hands', 3, 'arms_hands'],
+        ['Feet', 3, 'feet'],
+      ]),
+    },
+    {
+      id: id('template'),
       name: '30-Minute Session',
       createdAt: Date.now(),
       sections: sections([
-        ['Back', 8],
-        ['Shoulders & Neck', 7],
-        ['Arms & Hands', 5],
-        ['Legs (Back)', 5],
-        ['Feet', 5],
+        ['Back', 8, 'back'],
+        ['Shoulders & Neck', 7, 'neck_shoulders'],
+        ['Arms & Hands', 5, 'arms_hands'],
+        ['Legs (Back)', 5, 'legs'],
+        ['Feet', 5, 'feet'],
       ]),
     },
     {
@@ -38,13 +50,13 @@ export function buildDefaultTemplates(): SessionTemplate[] {
       name: '60-Minute Session',
       createdAt: Date.now(),
       sections: sections([
-        ['Back', 12],
-        ['Shoulders & Neck', 10],
-        ['Arms & Hands', 8],
-        ['Legs (Back)', 8],
-        ['Legs (Front)', 8],
-        ['Feet', 6],
-        ['Face & Scalp', 8],
+        ['Back', 12, 'back'],
+        ['Shoulders & Neck', 10, 'neck_shoulders'],
+        ['Arms & Hands', 8, 'arms_hands'],
+        ['Legs (Back)', 8, 'legs'],
+        ['Legs (Front)', 8, 'legs'],
+        ['Feet', 6, 'feet'],
+        ['Face & Scalp', 8, 'head_scalp'],
       ]),
     },
   ]

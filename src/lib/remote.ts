@@ -15,6 +15,7 @@
  */
 
 export type RemoteEvent =
+  /** delta sign = direction, |delta| = rotation size: 1 short, 2 medium, 3 long. */
   | { type: 'dial'; delta: number }
   | { type: 'press'; kind: 'single' | 'long' }
 

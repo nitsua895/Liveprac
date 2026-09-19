@@ -1,7 +1,17 @@
+export type BodyZone =
+  | 'head_scalp'
+  | 'neck_shoulders'
+  | 'back'
+  | 'arms_hands'
+  | 'legs'
+  | 'feet'
+  | 'none'
+
 export interface SectionTemplate {
   id: string
   name: string
   durationSec: number
+  bodyZone: BodyZone
 }
 
 export interface SessionTemplate {
@@ -28,12 +38,16 @@ export interface PreferenceEvent {
   sectionId: string
   sectionName: string
   type: PreferenceEventType
+  /** 1 = short rotation, 2 = medium, 3 = long. Always 1 for loved/flagged. */
+  magnitude: number
 }
 
 export interface ActiveSession {
   instanceId: string
   templateId: string
   clientId: string | null
+  /** Snapshot of the template's sections when the session started — edits here (Edit Plan, "+time") apply only to this run. */
+  sections: SectionTemplate[]
   startedAt: number
   currentSectionIndex: number
   sectionStartedAt: number

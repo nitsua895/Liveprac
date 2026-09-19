@@ -8,6 +8,7 @@ import type {
   ClientProfile,
   PreferenceEvent,
   PreferenceEventType,
+  SectionTemplate,
   SessionTemplate,
 } from '../types'
 
@@ -26,7 +27,9 @@ interface AppState {
   goToPreviousSection: () => void
   togglePause: () => void
   endSession: () => void
-  logPreferenceEvent: (type: PreferenceEventType) => void
+  extendCurrentSection: (extraSec: number) => void
+  updateRuntimeSections: (sections: SectionTemplate[]) => void
+  logPreferenceEvent: (type: PreferenceEventType, magnitude?: number) => void
   dismissAmbientCue: (cueId: string) => void
   pushAmbientCue: (cue: Omit<AmbientCue, 'id' | 'createdAt'>) => void
   eventsForSession: (instanceId: string) => PreferenceEvent[]
@@ -86,11 +89,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }
 
   function startSession(templateId: string, clientId: string | null) {
+    const template = templates.find((t) => t.id === templateId)
+    if (!template) return
     const now = Date.now()
     setActiveSession({
       instanceId: newSectionId(),
       templateId,
       clientId,
+      sections: template.sections.map((s) => ({ ...s })),
       startedAt: now,
       currentSectionIndex: 0,
       sectionStartedAt: now,
@@ -103,14 +109,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   function advanceSection() {
     setActiveSession((prev) => {
       if (!prev) return prev
-      const template = templates.find((t) => t.id === prev.templateId)
-      if (!template) return prev
       const nextIndex = prev.currentSectionIndex + 1
-      if (nextIndex >= template.sections.length) {
+      if (nextIndex >= prev.sections.length) {
         return prev
       }
       return { ...prev, currentSectionIndex: nextIndex, sectionStartedAt: Date.now() }
     })
+  }
+
+  function extendCurrentSection(extraSec: number) {
+    setActiveSession((prev) => {
+      if (!prev) return prev
+      const sections = prev.sections.map((s, i) =>
+        i === prev.currentSectionIndex ? { ...s, durationSec: s.durationSec + extraSec } : s,
+      )
+      return { ...prev, sections }
+    })
+  }
+
+  function updateRuntimeSections(sections: SectionTemplate[]) {
+    setActiveSession((prev) => (prev ? { ...prev, sections } : prev))
   }
 
   function goToPreviousSection() {
@@ -154,11 +172,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setAmbientCues((prev) => prev.filter((c) => c.id !== cueId))
   }
 
-  function logPreferenceEvent(type: PreferenceEventType) {
+  function logPreferenceEvent(type: PreferenceEventType, magnitude = 1) {
     setActiveSession((current) => {
       if (!current) return current
-      const template = templates.find((t) => t.id === current.templateId)
-      const section = template?.sections[current.currentSectionIndex]
+      const section = current.sections[current.currentSectionIndex]
       if (!section) return current
 
       const event: PreferenceEvent = {
@@ -169,6 +186,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         sectionId: section.id,
         sectionName: section.name,
         type,
+        magnitude,
       }
       setEvents((prev) => [...prev, event])
 
@@ -203,6 +221,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       goToPreviousSection,
       togglePause,
       endSession,
+      extendCurrentSection,
+      updateRuntimeSections,
       logPreferenceEvent,
       dismissAmbientCue,
       pushAmbientCue,
