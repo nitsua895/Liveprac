@@ -12,9 +12,9 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
 
   const refresh = useCallback(async () => {
     try {
-    const next = await spotify.fetchState()
-    setState(next)
-    setError(next.error)
+      const next = await spotify.fetchState()
+      setState(next)
+      setError(next.error)
     } catch {
       setError('Spotify is unreachable. Check your connection; session timing is unaffected.')
     }
@@ -44,9 +44,9 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
 
   async function run(action: () => Promise<string | null>) {
     try {
-    const message = await action()
-    setError(message)
-    if (!message) setTimeout(() => void refresh(), 250)
+      const message = await action()
+      setError(message)
+      if (!message) setTimeout(() => void refresh(), 250)
     } catch {
       setError('Spotify command failed. Check your connection and try again.')
     }
@@ -188,7 +188,8 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
             )}
           </div>
 
-          <label className="flex min-w-40 items-center gap-2 text-neutral-500">
+          <div className="flex min-w-40 flex-col items-end gap-1 text-neutral-500">
+          <label className="flex items-center gap-2">
             <Icon name={volume === 0 ? 'volumeOff' : 'volume'} className="h-4 w-4 shrink-0" />
             <input
               aria-label="Device volume"
@@ -196,14 +197,22 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
               min={0}
               max={100}
               value={volume}
-              disabled={state.volumePercent === null}
+              disabled={!state.supportsVolume}
               onChange={(event) => setLocal('volumePercent', Number(event.target.value))}
-              onPointerUp={() => void run(() => spotify.setVolume(state.volumePercent ?? 0))}
-              onKeyUp={() => void run(() => spotify.setVolume(state.volumePercent ?? 0))}
+              onPointerUp={(event) =>
+                void run(() => spotify.setVolume(Number(event.currentTarget.value), state.deviceId))
+              }
+              onKeyUp={(event) =>
+                void run(() => spotify.setVolume(Number(event.currentTarget.value), state.deviceId))
+              }
               className="spotify-range w-28"
               style={{ '--range-progress': `${volume}%` } as CSSProperties}
             />
           </label>
+          {!state.supportsVolume && state.deviceName && (
+            <span className="text-[10px] text-neutral-600">Volume unavailable for {state.deviceName}</span>
+          )}
+          </div>
         </div>
       )}
 
