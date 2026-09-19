@@ -25,6 +25,7 @@ const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-cu
 
 const KEYS = {
   verifier: 'liveprac:v1:spotifyVerifier',
+  state: 'liveprac:v1:spotifyAuthState',
   token: 'liveprac:v1:spotifyToken',
 }
 
@@ -124,6 +125,8 @@ function base64url(buffer: ArrayBuffer): string {
 }
 
 export async function beginAuth(): Promise<void> {
+  const state = randomString(24)
+  write(KEYS.state, state)
   const verifier = randomString(48)
   write(KEYS.verifier, verifier)
   const challenge = base64url(
@@ -137,6 +140,7 @@ export async function beginAuth(): Promise<void> {
     code_challenge_method: 'S256',
     code_challenge: challenge,
     scope: SCOPES,
+    state,
   })
   window.location.href = `${AUTH_URL}?${params}`
 }
@@ -145,12 +149,18 @@ export async function beginAuth(): Promise<void> {
 export async function completeAuthFromUrl(): Promise<boolean> {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
+  if (params.has('error')) {
+    window.history.replaceState({}, '', window.location.pathname)
+    throw new Error('Spotify connection was not approved. Please try Connect again.')
+  }
   if (!code) return false
 
   const verifier = read(KEYS.verifier)
   // Clear the query string either way so a reload doesn't retry a used code.
   window.history.replaceState({}, '', window.location.pathname)
-  if (!verifier) return false
+  if (!verifier || !read(KEYS.state) || params.get('state') !== read(KEYS.state)) {
+    throw new Error('Spotify login expired or was opened in another browser. Please connect again here.')
+  }
 
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -164,7 +174,7 @@ export async function completeAuthFromUrl(): Promise<boolean> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   })
-  if (!res.ok) return false
+  if (!res.ok) throw new Error('Spotify could not finish connecting. Please try Connect again.')
   const json = await res.json()
   write(
     KEYS.token,
@@ -175,6 +185,7 @@ export async function completeAuthFromUrl(): Promise<boolean> {
     } satisfies StoredToken),
   )
   write(KEYS.verifier, null)
+  write(KEYS.state, null)
   return true
 }
 
