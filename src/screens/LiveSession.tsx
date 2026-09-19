@@ -11,7 +11,6 @@ import { formatClock, sessionDurationSec } from '../lib/time'
 import { useAppState } from '../state/AppStateContext'
 
 const QUICK_EXTEND_SEC = 2 * 60
-const WARN_AHEAD_SEC = 60
 
 export function LiveSession() {
   const {
@@ -48,6 +47,7 @@ export function LiveSession() {
     activeSession && section
       ? section.durationSec - (effectiveNow - activeSession.sectionStartedAt) / 1000
       : 0
+  const warningSec = section ? Math.min(120, Math.max(60, section.durationSec * 0.25)) : 60
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 500)
@@ -67,16 +67,15 @@ export function LiveSession() {
   // Heads-up while there's still time to finish the stroke, not just at zero.
   useEffect(() => {
     if (!activeSession || activeSession.paused || !section) return
-    if (sectionRemainingSec > WARN_AHEAD_SEC || sectionRemainingSec <= 0) return
-    if (section.durationSec <= WARN_AHEAD_SEC * 1.5) return
+    if (sectionRemainingSec > warningSec || sectionRemainingSec <= 0) return
     if (warnedSectionRef.current === activeSession.currentSectionIndex) return
     warnedSectionRef.current = activeSession.currentSectionIndex
     pushAmbientCue({
       kind: 'timer',
       tone: 'next',
-      message: nextSection ? `1 min → ${nextSection.name}` : '1 min left',
+      message: nextSection ? `Coming up: ${nextSection.name}` : 'Session ending soon',
     })
-  }, [activeSession, section, sectionRemainingSec, nextSection, pushAmbientCue])
+  }, [activeSession, section, sectionRemainingSec, warningSec, nextSection, pushAmbientCue])
 
   useEffect(() => {
     if (!activeSession || activeSession.paused || sectionRemainingSec > 0) return
@@ -85,9 +84,10 @@ export function LiveSession() {
     pushAmbientCue({
       kind: 'timer',
       tone: 'next',
-      message: nextSection ? `Next: ${nextSection.name}` : 'Time is up',
+      message: nextSection ? `Now: ${nextSection.name}` : 'Session complete',
     })
-  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue])
+    if (nextSection) advanceSection()
+  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection])
 
   if (!activeSession) {
     navigate('/')
@@ -101,8 +101,13 @@ export function LiveSession() {
   }
 
   const client = clients.find((c) => c.id === activeSession.clientId)
-  const totalDuration = sessionDurationSec(activeSession.sections)
+  const totalDuration = activeSession.plannedDurationSec ?? sessionDurationSec(template.sections)
   const sessionRemainingSec = totalDuration - (effectiveNow - activeSession.startedAt) / 1000
+  const displayedSectionRemainingSec = Math.min(sectionRemainingSec, sessionRemainingSec)
+  const showNext = activeSession.paused || displayedSectionRemainingSec <= warningSec
+  const availableFollowingSec = activeSession.sections
+    .slice(activeSession.currentSectionIndex + 1)
+    .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec - 60), 0)
 
   const currentSectionEvents = events.filter(
     (e) => e.sessionInstanceId === activeSession.instanceId && e.sectionId === section.id,
@@ -113,7 +118,6 @@ export function LiveSession() {
     return sum
   }, 0)
 
-  const sessionEvents = events.filter((e) => e.sessionInstanceId === activeSession.instanceId)
   // Where each signal landed within the current section, for the ring markers.
   // Signals of the same type landing within ~2% of the ring collapse into one
   // marker, so a burst of dial turns doesn't pile up in the same spot.
@@ -139,7 +143,11 @@ export function LiveSession() {
           <h1 className="text-2xl font-light text-neutral-200">Edit Plan</h1>
           <p className="text-sm text-neutral-500">Changes apply to this session only</p>
         </header>
-        <SectionListEditor sections={activeSession.sections} onChange={updateRuntimeSections} />
+        <SectionListEditor
+          sections={activeSession.sections}
+          onChange={updateRuntimeSections}
+          preserveTotal
+        />
         <div className="flex justify-end">
           <button
             type="button"
@@ -174,9 +182,9 @@ export function LiveSession() {
         <div className="flex flex-col items-center">
           <TimerDial
             sizePx={350}
-            remainingFraction={sectionRemainingSec / section.durationSec}
+            remainingFraction={displayedSectionRemainingSec / section.durationSec}
             sessionFraction={sessionRemainingSec / totalDuration}
-            over={sectionRemainingSec < 0}
+            over={displayedSectionRemainingSec < 0}
             sessionOver={sessionRemainingSec < 0}
             strokeWidth={12}
             markers={dialMarkers}
@@ -187,11 +195,11 @@ export function LiveSession() {
             </span>
             <span
               className={`mt-1 font-mono text-6xl tabular-nums ${
-                sectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
+                displayedSectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
               }`}
             >
-              {sectionRemainingSec < 0 ? '+' : ''}
-              {formatClock(Math.abs(sectionRemainingSec))}
+              {displayedSectionRemainingSec < 0 ? '+' : ''}
+              {formatClock(Math.abs(displayedSectionRemainingSec))}
             </span>
             <div className="mt-2 flex items-center gap-2 text-sm text-neutral-400">
               <span>Session left</span>
@@ -213,12 +221,16 @@ export function LiveSession() {
         {/* Controls live beside the dial: the two used mid-session are big and
             near the timer, the rest are tucked behind "More". */}
         <div className="flex flex-col items-stretch gap-3">
-          <div className="mb-2 min-h-24 rounded-xl border border-neutral-800 p-4">
+          <div
+            className={`mb-2 min-h-24 rounded-xl border border-neutral-800 p-4 transition-opacity duration-700 ${
+              showNext ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+            aria-hidden={!showNext}
+          >
             <p className="text-sm text-neutral-400">
-              {activeSession.paused ? 'Paused' : sectionRemainingSec <= 0 ? 'Section complete' : sectionRemainingSec <= 60 ? 'Prepare to change' : 'Up next'}
+              {activeSession.paused ? 'Paused' : 'Coming up'}
             </p>
             <p className="mt-1 text-2xl font-medium text-accent-200">{nextSection?.name ?? 'Finish session'}</p>
-            <p className="mt-1 text-sm text-neutral-400">Outer ring: session · Inner: section</p>
           </div>
           <button
             type="button"
@@ -244,9 +256,10 @@ export function LiveSession() {
           <button
             type="button"
             onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
+            disabled={availableFollowingSec <= 0}
             className="rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
-            +2 min
+            +2 min from next
           </button>
           <button
             type="button"
@@ -262,7 +275,6 @@ export function LiveSession() {
       <SectionTimeline
         sections={activeSession.sections}
         currentIndex={activeSession.currentSectionIndex}
-        events={sessionEvents}
       />
 
       {showMore && (
@@ -311,8 +323,7 @@ function PressureReadout({ net }: { net: number }) {
         up ? 'text-orange-300' : 'text-sky-300'
       }`}
     >
-      {up ? '+' : ''}
-      {net} pressure requests · this section
+      {up ? '+' : ''}{net} pressure
     </span>
   )
 }
