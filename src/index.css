@@ -258,3 +258,34 @@ body {
   cursor: default;
   opacity: 0.4;
 }
+
+button, a, input, summary { touch-action: manipulation; }
+button, summary { min-height: 44px; }
+button:disabled { cursor: not-allowed; opacity: 0.4; }
+:focus-visible { outline: 2px solid var(--color-accent-200); outline-offset: 4px; }
+.session-stage { grid-template-columns: minmax(0, 1fr) 17rem; max-width: 780px; margin: 0 auto; width: 100%; }
+.cue-banner {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  border: 2px solid var(--cue-border);
+  border-radius: 18px;
+  background: #171719;
+  color: var(--cue-text);
+  padding: 12px 24px;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 600;
+  text-align: center;
+}
+.cue-hold { animation: cue-hold 9s linear forwards; }
+@keyframes cue-hold { 0%, 88.8% { opacity: 1; } 100% { opacity: 0; } }
+@media (max-width: 700px) {
+  .session-stage { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-section-enter, .ambient-vignette-flash { animation: none; }
+  .transition-\[stroke-dashoffset\] { transition: none; }
+}
