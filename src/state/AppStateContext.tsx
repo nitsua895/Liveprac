@@ -1,0 +1,221 @@
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import { loadJSON, saveJSON } from '../lib/storage'
+import { buildDefaultTemplates, newSectionId, newTemplateId } from './defaultTemplates'
+import type {
+  ActiveSession,
+  AmbientCue,
+  ClientProfile,
+  PreferenceEvent,
+  PreferenceEventType,
+  SessionTemplate,
+} from '../types'
+
+interface AppState {
+  templates: SessionTemplate[]
+  clients: ClientProfile[]
+  events: PreferenceEvent[]
+  activeSession: ActiveSession | null
+  ambientCues: AmbientCue[]
+
+  saveTemplate: (template: SessionTemplate) => void
+  deleteTemplate: (templateId: string) => void
+  addClient: (name: string) => ClientProfile
+  startSession: (templateId: string, clientId: string | null) => void
+  advanceSection: () => void
+  goToPreviousSection: () => void
+  togglePause: () => void
+  endSession: () => void
+  logPreferenceEvent: (type: PreferenceEventType) => void
+  dismissAmbientCue: (cueId: string) => void
+  pushAmbientCue: (cue: Omit<AmbientCue, 'id' | 'createdAt'>) => void
+  eventsForSession: (instanceId: string) => PreferenceEvent[]
+}
+
+const AppStateContext = createContext<AppState | null>(null)
+
+let cueCounter = 0
+function makeCueId() {
+  cueCounter += 1
+  return `cue_${Date.now()}_${cueCounter}`
+}
+
+export function AppStateProvider({ children }: { children: ReactNode }) {
+  const [templates, setTemplates] = useState<SessionTemplate[]>(() =>
+    loadJSON('templates', [] as SessionTemplate[]),
+  )
+  const [clients, setClients] = useState<ClientProfile[]>(() => loadJSON('clients', []))
+  const [events, setEvents] = useState<PreferenceEvent[]>(() => loadJSON('events', []))
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(() =>
+    loadJSON('activeSession', null),
+  )
+  const [ambientCues, setAmbientCues] = useState<AmbientCue[]>([])
+
+  useEffect(() => {
+    if (templates.length === 0) {
+      setTemplates(buildDefaultTemplates())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => saveJSON('templates', templates), [templates])
+  useEffect(() => saveJSON('clients', clients), [clients])
+  useEffect(() => saveJSON('events', events), [events])
+  useEffect(() => saveJSON('activeSession', activeSession), [activeSession])
+
+  function saveTemplate(template: SessionTemplate) {
+    setTemplates((prev) => {
+      const exists = prev.some((t) => t.id === template.id)
+      return exists ? prev.map((t) => (t.id === template.id ? template : t)) : [...prev, template]
+    })
+  }
+
+  function deleteTemplate(templateId: string) {
+    setTemplates((prev) => prev.filter((t) => t.id !== templateId))
+  }
+
+  function addClient(name: string): ClientProfile {
+    const client: ClientProfile = {
+      id: newTemplateId(),
+      name,
+      notes: '',
+      createdAt: Date.now(),
+    }
+    setClients((prev) => [...prev, client])
+    return client
+  }
+
+  function startSession(templateId: string, clientId: string | null) {
+    const now = Date.now()
+    setActiveSession({
+      instanceId: newSectionId(),
+      templateId,
+      clientId,
+      startedAt: now,
+      currentSectionIndex: 0,
+      sectionStartedAt: now,
+      paused: false,
+      pausedAt: null,
+    })
+    setAmbientCues([])
+  }
+
+  function advanceSection() {
+    setActiveSession((prev) => {
+      if (!prev) return prev
+      const template = templates.find((t) => t.id === prev.templateId)
+      if (!template) return prev
+      const nextIndex = prev.currentSectionIndex + 1
+      if (nextIndex >= template.sections.length) {
+        return prev
+      }
+      return { ...prev, currentSectionIndex: nextIndex, sectionStartedAt: Date.now() }
+    })
+  }
+
+  function goToPreviousSection() {
+    setActiveSession((prev) => {
+      if (!prev || prev.currentSectionIndex === 0) return prev
+      return {
+        ...prev,
+        currentSectionIndex: prev.currentSectionIndex - 1,
+        sectionStartedAt: Date.now(),
+      }
+    })
+  }
+
+  function togglePause() {
+    setActiveSession((prev) => {
+      if (!prev) return prev
+      if (prev.paused) {
+        const pausedMs = prev.pausedAt ? Date.now() - prev.pausedAt : 0
+        return {
+          ...prev,
+          paused: false,
+          pausedAt: null,
+          startedAt: prev.startedAt + pausedMs,
+          sectionStartedAt: prev.sectionStartedAt + pausedMs,
+        }
+      }
+      return { ...prev, paused: true, pausedAt: Date.now() }
+    })
+  }
+
+  function endSession() {
+    setActiveSession(null)
+    setAmbientCues([])
+  }
+
+  function pushAmbientCue(cue: Omit<AmbientCue, 'id' | 'createdAt'>) {
+    setAmbientCues((prev) => [...prev, { ...cue, id: makeCueId(), createdAt: Date.now() }])
+  }
+
+  function dismissAmbientCue(cueId: string) {
+    setAmbientCues((prev) => prev.filter((c) => c.id !== cueId))
+  }
+
+  function logPreferenceEvent(type: PreferenceEventType) {
+    setActiveSession((current) => {
+      if (!current) return current
+      const template = templates.find((t) => t.id === current.templateId)
+      const section = template?.sections[current.currentSectionIndex]
+      if (!section) return current
+
+      const event: PreferenceEvent = {
+        id: makeCueId(),
+        timestamp: Date.now(),
+        sessionInstanceId: current.instanceId,
+        clientId: current.clientId,
+        sectionId: section.id,
+        sectionName: section.name,
+        type,
+      }
+      setEvents((prev) => [...prev, event])
+
+      const messages: Record<PreferenceEventType, string> = {
+        pressure_up: 'Client asked for more pressure',
+        pressure_down: 'Client asked for less pressure',
+        loved: 'Client loved this',
+        flagged: 'Client flagged this',
+      }
+      pushAmbientCue({ kind: 'preference', message: messages[type] })
+
+      return current
+    })
+  }
+
+  function eventsForSession(instanceId: string) {
+    return events.filter((e) => e.sessionInstanceId === instanceId)
+  }
+
+  const value = useMemo<AppState>(
+    () => ({
+      templates,
+      clients,
+      events,
+      activeSession,
+      ambientCues,
+      saveTemplate,
+      deleteTemplate,
+      addClient,
+      startSession,
+      advanceSection,
+      goToPreviousSection,
+      togglePause,
+      endSession,
+      logPreferenceEvent,
+      dismissAmbientCue,
+      pushAmbientCue,
+      eventsForSession,
+    }),
+    [templates, clients, events, activeSession, ambientCues],
+  )
+
+  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>
+}
+
+export function useAppState(): AppState {
+  const ctx = useContext(AppStateContext)
+  if (!ctx) throw new Error('useAppState must be used within AppStateProvider')
+  return ctx
+}

@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+@theme {
+  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0a0a0b;
+  -webkit-font-smoothing: antialiased;
+}
