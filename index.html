@@ -10,9 +10,67 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0a0a0b" />
     <title>Liveprac</title>
+    <!-- Inline so the page is never blank-white even if the stylesheet fails to load. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0a0a0b;
+        color: #e5e5e5;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+      }
+      #boot .msg {
+        max-width: 46ch;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #a3a3a3;
+      }
+      #boot .err {
+        color: #f87171;
+        word-break: break-word;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Removed by main.tsx once React mounts. If it stays up, something failed
+         and the handler below prints the reason on screen — this app runs on an
+         iPad with no usable dev console, so errors have to be visible in-page. -->
+    <div id="boot"><p class="msg">Loading Liveprac&hellip;</p></div>
+    <script>
+      (function () {
+        function show(text) {
+          var boot = document.getElementById('boot')
+          if (!boot) return
+          boot.innerHTML =
+            '<p class="msg"><span class="err">Liveprac failed to load.</span><br><br>' +
+            String(text).replace(/</g, '&lt;') +
+            '<br><br>Screenshot this and send it over.</p>'
+        }
+        window.addEventListener('error', function (e) {
+          if (e.target && e.target.tagName === 'SCRIPT') {
+            show('Could not load script: ' + (e.target.src || '(unknown)'))
+          } else if (e.target && e.target.tagName === 'LINK') {
+            show('Could not load stylesheet: ' + (e.target.href || '(unknown)'))
+          } else {
+            show((e.message || 'Unknown error') + '\n' + (e.filename || '') + ':' + (e.lineno || ''))
+          }
+        }, true)
+        window.addEventListener('unhandledrejection', function (e) {
+          show('Unhandled promise rejection: ' + ((e.reason && e.reason.message) || e.reason))
+        })
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -19,3 +19,5 @@ createRoot(document.getElementById('root')!).render(
     </HashRouter>
   </StrictMode>,
 )
+
+document.getElementById('boot')?.remove()
