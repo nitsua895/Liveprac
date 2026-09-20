@@ -248,6 +248,20 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
+        <button
+          type="button"
+          aria-label="End session"
+          title="End session"
+          onClick={() => {
+            if (!window.confirm('End this session? Recorded feedback will be kept.')) return
+            completeSession()
+          }}
+          className="session-end-x flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-900/50 text-red-400/70 transition-colors hover:border-red-500/60 hover:text-red-300"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">
+            <path d="M5 5l14 14M19 5 5 19" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+        </button>
       </header>
 
       <div
@@ -377,16 +391,6 @@ export function LiveSession() {
             className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400 disabled:opacity-30"
           >
             Previous Section
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!window.confirm('End this session? Recorded feedback will be kept.')) return
-              completeSession()
-            }}
-            className="rounded-full border border-red-900/60 px-5 py-2.5 text-red-400/80"
-          >
-            End Session
           </button>
           <RemoteSimulator />
         </div>

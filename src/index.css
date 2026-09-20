@@ -19,41 +19,42 @@
 /* Pre-mixed rgba rather than color-mix(), which needs a newer WebKit than
    some iPads run. */
 :root {
-  --vignette-soft: rgba(178, 125, 56, 0.5);
-  --vignette-flash: rgba(206, 160, 92, 0.82);
-  --cue-border: rgba(206, 160, 92, 0.55);
+  --vignette-soft: rgba(178, 125, 56, 0.72);
+  --vignette-flash: rgba(206, 160, 92, 0.95);
+  --cue-border: rgba(206, 160, 92, 0.7);
   --cue-text: rgb(240, 200, 150);
 }
 
 /* Cue colour is semantic, not themed: the point is to tell what kind of alert
    it is from peripheral vision without reading the words. The accent theme
-   still governs the rest of the UI. */
+   still governs the rest of the UI. Pushed vibrant on purpose — this needs
+   to register from across a room, not just up close at the table. */
 [data-tone='pressure'] {
-  --vignette-soft: rgba(200, 130, 55, 0.5);
-  --vignette-flash: rgba(224, 158, 84, 0.82);
-  --cue-border: rgba(224, 158, 84, 0.55);
-  --cue-text: rgb(240, 200, 150);
+  --vignette-soft: rgba(210, 130, 40, 0.72);
+  --vignette-flash: rgba(240, 158, 60, 0.95);
+  --cue-border: rgba(240, 158, 60, 0.7);
+  --cue-text: rgb(255, 205, 140);
 }
 
 [data-tone='love'] {
-  --vignette-soft: rgba(198, 68, 68, 0.5);
-  --vignette-flash: rgba(222, 100, 100, 0.82);
-  --cue-border: rgba(222, 100, 100, 0.55);
-  --cue-text: rgb(245, 175, 175);
+  --vignette-soft: rgba(220, 40, 55, 0.72);
+  --vignette-flash: rgba(255, 70, 90, 0.95);
+  --cue-border: rgba(255, 70, 90, 0.7);
+  --cue-text: rgb(255, 165, 175);
 }
 
 [data-tone='flag'] {
-  --vignette-soft: rgba(72, 130, 190, 0.5);
-  --vignette-flash: rgba(104, 160, 214, 0.82);
-  --cue-border: rgba(104, 160, 214, 0.55);
-  --cue-text: rgb(175, 205, 240);
+  --vignette-soft: rgba(40, 120, 220, 0.72);
+  --vignette-flash: rgba(70, 155, 255, 0.95);
+  --cue-border: rgba(70, 155, 255, 0.7);
+  --cue-text: rgb(165, 205, 255);
 }
 
 [data-tone='next'] {
-  --vignette-soft: rgba(138, 100, 200, 0.5);
-  --vignette-flash: rgba(166, 134, 220, 0.82);
-  --cue-border: rgba(166, 134, 220, 0.55);
-  --cue-text: rgb(206, 186, 245);
+  --vignette-soft: rgba(130, 70, 230, 0.72);
+  --vignette-flash: rgba(165, 110, 255, 0.95);
+  --cue-border: rgba(165, 110, 255, 0.7);
+  --cue-text: rgb(210, 180, 255);
 }
 
 /* Alternate accent palettes. Cue colours are semantic (see [data-tone] above)
@@ -144,7 +145,7 @@
    whenever a new cue arrives, so a second signal never gets lost under an
    already-showing one. */
 .ambient-vignette {
-  box-shadow: inset 0 0 min(11vw, 110px) min(2vw, 22px) var(--vignette-soft);
+  box-shadow: inset 0 0 min(20vw, 220px) min(5vw, 55px) var(--vignette-soft);
 }
 
 @keyframes glow-flash-once {
@@ -160,7 +161,7 @@
 }
 
 .ambient-vignette-flash {
-  box-shadow: inset 0 0 min(14vw, 135px) min(2.6vw, 28px) var(--vignette-flash);
+  box-shadow: inset 0 0 min(26vw, 280px) min(7vw, 70px) var(--vignette-flash);
   animation: glow-flash-once 1100ms ease-out forwards;
 }
 
@@ -604,7 +605,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   transform: translateX(-50%);
   width: max-content;
   max-width: calc(100vw - 24px);
-  border: 2px solid var(--cue-border);
+  border: 3px solid var(--cue-border);
   border-radius: 18px;
   background: #171719;
   color: var(--cue-text);
@@ -612,11 +613,12 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   font-size: clamp(24px, 3vw, 36px);
   font-weight: 600;
   text-align: center;
+  box-shadow: 0 0 32px 6px var(--cue-border);
 }
 .cue-hold { animation: cue-hold 12s linear forwards; }
 @keyframes cue-hold { 0%, 88.8% { opacity: 1; } 100% { opacity: 0; } }
-.cue-glow { animation: cue-glow 3s ease-in-out 4; }
-@keyframes cue-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.cue-glow { animation: cue-glow 2.4s ease-in-out 5; }
+@keyframes cue-glow { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
 .orientation-control {
   position: fixed;
   z-index: 45;
