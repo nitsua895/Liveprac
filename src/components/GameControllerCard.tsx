@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { bluetoothRemote, type BleNotification, type BleStatus } from '../lib/bluetoothRemote'
-import { ACTION_LABELS, deleteMapping, getMappings, saveMapping, type MappedAction } from '../lib/bleMapping'
-
-const STATUS_LABEL: Record<BleStatus, string> = {
-  unsupported: 'Not supported here',
-  disconnected: 'Not connected',
-  connecting: 'Connecting…',
-  connected: 'Connected',
-  reconnecting: 'Reconnecting…',
-}
+import { isGamepadSupported } from '../lib/gamepad'
+import {
+  deleteMapping,
+  getMappings,
+  saveMapping,
+  startLearning,
+  type GamepadCapture,
+  type NewGamepadMapping,
+} from '../lib/gamepadMapping'
+import { ACTION_LABELS, type MappedAction } from '../lib/bleMapping'
 
 const MAGNITUDE_OPTIONS: { value: number; label: string }[] = [
   { value: 1, label: 'Short (small nudge)' },
@@ -16,53 +16,60 @@ const MAGNITUDE_OPTIONS: { value: number; label: string }[] = [
   { value: 3, label: 'Long (big nudge)' },
 ]
 
-export function BluetoothRemoteCard() {
-  const [status, setStatus] = useState<BleStatus>(() => bluetoothRemote.getStatus())
-  const [battery, setBattery] = useState<number | null>(() => bluetoothRemote.getBattery())
-  const [error, setError] = useState<string | null>(null)
+function describeCapture(capture: GamepadCapture): string {
+  return capture.kind === 'button'
+    ? `Button ${capture.index}`
+    : `Axis ${capture.index} (${capture.direction > 0 ? '+' : '−'})`
+}
+
+/**
+ * For hardware that pairs through iOS Settings → Bluetooth as an HID
+ * accessory (game controllers, and BLE dials/remotes that identify the same
+ * way) rather than being visible to Web Bluetooth — see gamepad.ts for why.
+ * Same programmable "learn a control" flow as the Bluetooth Remote card,
+ * just against Gamepad API axes/buttons instead of raw BLE bytes.
+ */
+export function GameControllerCard() {
+  const [connected, setConnected] = useState(() => Boolean(navigator.getGamepads?.().find((p) => p?.connected)))
   const [mappings, setMappings] = useState(() => getMappings())
   const [listening, setListening] = useState(false)
-  const [captured, setCaptured] = useState<BleNotification | null>(null)
+  const [captured, setCaptured] = useState<GamepadCapture | null>(null)
   const [pendingAction, setPendingAction] = useState<MappedAction>('pressure_up')
   const [pendingMagnitude, setPendingMagnitude] = useState(1)
 
   useEffect(() => {
-    const offStatus = bluetoothRemote.onStatusChange(setStatus)
-    const offBattery = bluetoothRemote.onBatteryChange(setBattery)
+    function refresh() {
+      setConnected(Boolean(navigator.getGamepads().find((p) => p?.connected)))
+    }
+    window.addEventListener('gamepadconnected', refresh)
+    window.addEventListener('gamepaddisconnected', refresh)
+    // iOS Safari's connect/disconnect events are inconsistent across
+    // versions and controllers — a poll fallback catches what they miss.
+    const interval = setInterval(refresh, 1000)
     return () => {
-      offStatus()
-      offBattery()
+      window.removeEventListener('gamepadconnected', refresh)
+      window.removeEventListener('gamepaddisconnected', refresh)
+      clearInterval(interval)
     }
   }, [])
 
   useEffect(() => {
     if (!listening) return
-    return bluetoothRemote.onNotification((note) => {
-      setCaptured(note)
+    return startLearning((capture) => {
+      setCaptured(capture)
       setListening(false)
     })
   }, [listening])
 
-  async function connect() {
-    setError(null)
-    try {
-      await bluetoothRemote.requestAndConnect()
-    } catch (e) {
-      // The user cancelling the device picker is not a real error.
-      const message = e instanceof Error ? e.message : String(e)
-      if (!message.includes('cancelled') && !message.includes('User cancelled')) setError(message)
-    }
-  }
-
   function confirmMapping() {
     if (!captured) return
     const existingLabel = mappings.filter((m) => m.action === pendingAction).length + 1
-    saveMapping({
-      hex: captured.hex,
-      action: pendingAction,
-      magnitude: pendingMagnitude,
-      label: `${ACTION_LABELS[pendingAction]} #${existingLabel}`,
-    })
+    const label = `${ACTION_LABELS[pendingAction]} #${existingLabel}`
+    const mapping: NewGamepadMapping =
+      captured.kind === 'button'
+        ? { kind: 'button', index: captured.index, action: pendingAction, magnitude: pendingMagnitude, label }
+        : { kind: 'axis', index: captured.index, direction: captured.direction, action: pendingAction, magnitude: pendingMagnitude, label }
+    saveMapping(mapping)
     setMappings(getMappings())
     setCaptured(null)
   }
@@ -72,80 +79,40 @@ export function BluetoothRemoteCard() {
     setMappings(getMappings())
   }
 
-  if (status === 'unsupported') {
-    return (
-      <div className="surface-card p-5">
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-neutral-100">Bluetooth Remote</p>
-          <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
-            Not supported
-          </span>
-        </div>
-        <p className="text-sm text-neutral-500">
-          This browser has no Web Bluetooth support — that's true of Safari on iOS/iPadOS specifically
-          (an Apple platform limit, not something this app can work around). It works in Chrome or Edge
-          on Android or desktop.
-        </p>
-        <p className="mt-2 text-sm text-neutral-500">
-          If your remote pairs through iPad Settings → Bluetooth like a normal accessory (most
-          dials and presenter remotes do), that's a different path — use the{' '}
-          <strong className="text-neutral-300">Game Controller</strong> card below instead.
-        </p>
-      </div>
-    )
-  }
+  if (!isGamepadSupported()) return null
 
   return (
     <div className="surface-card p-5">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-neutral-100">Bluetooth Remote</p>
+        <p className="text-neutral-100">Game Controller</p>
         <span
           className={`rounded-full border px-3 py-0.5 text-xs ${
-            status === 'connected'
-              ? 'border-accent-500/40 text-accent-300'
-              : 'border-neutral-800 text-neutral-500'
+            connected ? 'border-accent-500/40 text-accent-300' : 'border-neutral-800 text-neutral-500'
           }`}
         >
-          {STATUS_LABEL[status]}
-          {status === 'connected' && battery !== null ? ` · ${battery}% battery` : ''}
+          {connected ? 'Connected' : 'Not connected'}
         </span>
       </div>
       <p className="mb-3 text-sm text-neutral-500">
-        Works with any BLE dial/button hardware — nothing is hardcoded to one device. Connect once,
-        then teach the app what each physical action means below.
-        {bluetoothRemote.getDeviceName() && status === 'connected'
-          ? ` Currently paired: ${bluetoothRemote.getDeviceName()}.`
-          : ''}
+        For hardware that pairs through iPad Settings → Bluetooth rather than through this app —
+        game controllers, and some BLE dials/remotes that identify the same way to the browser.
+        Pair it in iOS Settings first, then teach the app what each control means below.
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        {status === 'connected' ? (
-          <button
-            type="button"
-            onClick={() => bluetoothRemote.disconnect()}
-            className="rounded-full border border-neutral-700 px-4 py-2 text-sm text-neutral-300"
-          >
-            Disconnect
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => void connect()}
-            className="primary-action"
-          >
-            Connect remote
-          </button>
-        )}
-      </div>
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      {!connected && (
+        <p className="text-sm text-neutral-600">
+          Waiting for a controller — pair it in iPad Settings → Bluetooth, then this updates
+          automatically.
+        </p>
+      )}
 
-      {status === 'connected' && (
-        <div className="mt-4 border-t border-neutral-800 pt-4">
+      {connected && (
+        <div className="border-t border-neutral-800 pt-4">
           <p className="mb-2 text-sm font-medium text-neutral-300">Programmed controls</p>
           {mappings.length === 0 && (
             <p className="mb-3 text-sm text-neutral-500">
               Nothing taught yet. Press "Learn a control" below, then turn the dial or press the
-              button once on the remote.
+              button once.
             </p>
           )}
           <ul className="mb-3 flex flex-col gap-1.5">
@@ -165,8 +132,8 @@ export function BluetoothRemoteCard() {
           {captured ? (
             <div className="rounded-xl border border-accent-500/30 bg-accent-500/5 p-3">
               <p className="mb-2 text-sm text-neutral-300">
-                Captured signal <code className="text-accent-300">{captured.hex}</code>. What does
-                this mean?
+                Captured <code className="text-accent-300">{describeCapture(captured)}</code>. What
+                does this mean?
               </p>
               <div className="mb-2 flex flex-wrap gap-2">
                 {(Object.keys(ACTION_LABELS) as MappedAction[]).map((action) => (

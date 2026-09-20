@@ -3,6 +3,7 @@ import * as spotify from '../lib/spotify'
 import { getCueSoundMode, previewCueSound, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
 import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
 import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
+import { GameControllerCard } from '../components/GameControllerCard'
 import { GoogleCalendarCard } from '../components/GoogleCalendarCard'
 
 function IntegrationCard({
@@ -174,6 +175,7 @@ export function Settings() {
       <CueSoundCard />
 
       <BluetoothRemoteCard />
+      <GameControllerCard />
       <GoogleCalendarCard />
       <SpotifyCard />
       <IntegrationCard

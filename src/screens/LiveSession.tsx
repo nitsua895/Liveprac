@@ -5,7 +5,8 @@ import { SectionListEditor } from '../components/SectionListEditor'
 import { SectionTimeline } from '../components/SectionTimeline'
 import { TimerDial } from '../components/TimerDial'
 import { playSessionEndChime, stopSessionEndChime } from '../lib/chime'
-import { isGamepadSupported, startGamepadBridge } from '../lib/gamepad'
+import { isGamepadSupported } from '../lib/gamepad'
+import { startMappedGamepadBridge } from '../lib/gamepadMapping'
 import { remoteController } from '../lib/remote'
 import { formatClock, sessionDurationSec } from '../lib/time'
 import { acquireWakeLock, reacquireOnVisible, releaseWakeLock } from '../lib/wakeLock'
@@ -137,13 +138,14 @@ export function LiveSession() {
     }
   }, [activeSession?.instanceId])
 
-  // A game controller stands in for the physical dial until real BLE
-  // hardware exists — always listening for the whole session rather than a
-  // manual toggle, since it idles harmlessly (via requestAnimationFrame)
-  // when nothing's connected and just starts working the moment one is.
+  // Some remotes (this pad included) pair through the OS's Bluetooth
+  // settings and only show up to the page as a "gamepad" — see gamepad.ts.
+  // Always listening for the whole session rather than a manual toggle,
+  // since it idles harmlessly (via requestAnimationFrame) when nothing's
+  // connected and dispatches whatever's mapped in Settings once one is.
   useEffect(() => {
     if (!activeSession) return
-    return startGamepadBridge()
+    return startMappedGamepadBridge()
   }, [activeSession?.instanceId])
 
   if (!activeSession) {
@@ -491,8 +493,8 @@ function RemoteSimulator() {
       </div>
       {isGamepadSupported() && (
         <p className="mb-3 text-xs text-neutral-600">
-          Left stick up/down = pressure (hold longer for a bigger nudge). Button A/Cross = tap to flag, hold to
-          mark loved.
+          Controls are whatever's mapped in Settings → Game Controller. Nothing mapped yet? Head
+          there to teach it.
         </p>
       )}
       <div className="flex flex-wrap gap-2">

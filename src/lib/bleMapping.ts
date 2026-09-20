@@ -62,7 +62,8 @@ export function deleteMapping(id: string): void {
   write(read().filter((m) => m.id !== id))
 }
 
-function toRemoteEvent(mapping: BleMapping): RemoteEvent {
+/** Exported for reuse by gamepadMapping.ts — the action→event logic is the same regardless of transport. */
+export function toRemoteEvent(mapping: { action: MappedAction; magnitude: number }): RemoteEvent {
   if (mapping.action === 'loved') return { type: 'press', kind: 'long' }
   if (mapping.action === 'flagged') return { type: 'press', kind: 'single' }
   const sign = mapping.action === 'pressure_up' ? 1 : -1
