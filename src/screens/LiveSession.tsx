@@ -161,7 +161,7 @@ export function LiveSession() {
 
   if (editingPlan) {
     return (
-      <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="session-editor-page flex h-full flex-col gap-4 overflow-y-auto sm:gap-6">
         <header className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-2xl font-light text-neutral-200">Edit Plan</h1>
           <p className="text-sm text-neutral-500">Changes apply to this session only</p>
@@ -333,7 +333,7 @@ export function LiveSession() {
       />
 
       {showMore && (
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="session-more-panel flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={goToPreviousSection}

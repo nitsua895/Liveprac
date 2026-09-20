@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { playCueSound } from '../lib/cueSound'
 import { useAppState } from '../state/AppStateContext'
 
 /** Feedback is hands-free: eleven seconds to read, then a gentle one-second fade.
@@ -7,6 +8,7 @@ import { useAppState } from '../state/AppStateContext'
 export function AmbientGlow() {
   const { ambientCues, dismissAmbientCue } = useAppState()
   const dismiss = useRef(dismissAmbientCue)
+  const played = useRef<string | null>(null)
   dismiss.current = dismissAmbientCue
   const current = ambientCues[ambientCues.length - 1]
   const signature = ambientCues.map((cue) => `${cue.id}:${cue.createdAt}:${cue.count}`).join('|')
@@ -19,6 +21,14 @@ export function AmbientGlow() {
     // The signature changes only on a new or repeated cue, not session clock ticks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature])
+
+  useEffect(() => {
+    if (!current) return
+    const soundId = `${current.id}:${current.createdAt}:${current.count}`
+    if (played.current === soundId) return
+    played.current = soundId
+    playCueSound(current)
+  }, [current])
 
   if (!current) return null
   return (
