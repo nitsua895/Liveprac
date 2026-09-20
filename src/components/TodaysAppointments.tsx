@@ -43,7 +43,7 @@ export function TodaysAppointments() {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">
+      <h2 className="section-label">
         Today's appointments
       </h2>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -57,7 +57,7 @@ export function TodaysAppointments() {
           return (
             <div
               key={event.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-3"
+              className="surface-card flex flex-wrap items-center justify-between gap-2 px-4 py-3"
             >
               {event.htmlLink ? (
                 <a
@@ -153,9 +153,9 @@ function LinkClientModal({
   const [newClientName, setNewClientName] = useState('')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-6">
-      <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
-        <h3 className="mb-1 text-lg text-neutral-100">Link to a client</h3>
+    <div className="modal-backdrop">
+      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="link-client-title">
+        <h3 id="link-client-title" className="mb-1 text-lg text-neutral-100">Link to a client</h3>
         <p className="mb-4 truncate text-sm text-neutral-500">{eventSummary}</p>
         <div className="flex max-h-60 flex-col gap-2 overflow-y-auto">
           {clients.map((client) => (
@@ -186,7 +186,7 @@ function LinkClientModal({
               setNewClientName('')
               onPick(client.id)
             }}
-            className="rounded-lg bg-accent-500 px-3 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
+            className="primary-action disabled:opacity-40"
           >
             Add & link
           </button>
