@@ -66,7 +66,7 @@ export function SectionListEditor({
       if (!donor) return
       donor.durationSec -= durationSec
     }
-    next.push({ id: newSectionId(), name: 'New Section', durationSec, bodyZone: 'none' })
+    next.push({ id: newSectionId(), name: 'New Section', durationSec, bodyZone: 'none', notes: '' })
     onChange(next)
   }
 
@@ -159,6 +159,14 @@ export function SectionListEditor({
                 <option key={zone} value={zone}>{BODY_ZONE_LABELS[zone]}</option>
               ))}
             </select>
+            <textarea
+              aria-label="Section notes"
+              value={section.notes ?? ''}
+              onChange={(event) => updateSection(index, { notes: event.target.value })}
+              rows={2}
+              placeholder="Notes · one cue per line"
+              className="mt-2 w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm leading-relaxed text-neutral-300 outline-none placeholder:text-neutral-700 focus:border-accent-500/50"
+            />
           </div>
           <div className="section-duration flex items-center justify-center rounded-full border border-neutral-700 bg-neutral-950">
             <button

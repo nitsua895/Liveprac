@@ -12,6 +12,8 @@ export interface SectionTemplate {
   name: string
   durationSec: number
   bodyZone: BodyZone
+  /** Optional glanceable practitioner cues, one bullet per line. */
+  notes?: string
 }
 
 export interface SessionTemplate {

@@ -248,11 +248,6 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
-        <div className="flex items-center gap-4">
-          <span className="whitespace-nowrap font-mono text-lg tabular-nums text-neutral-500 sm:text-2xl">
-            {new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-          </span>
-        </div>
       </header>
 
       <div
@@ -306,6 +301,7 @@ export function LiveSession() {
         {/* Controls live beside the dial: the two used mid-session are big and
             near the timer, the rest are tucked behind "More". */}
         <div className="session-controls flex flex-col items-stretch gap-3">
+          {section.notes?.trim() && <SectionNotes notes={section.notes} />}
           {showNext && (
             <div className="up-next-card rounded-xl border border-neutral-800 p-4">
               <p className="text-sm text-neutral-400">
@@ -353,10 +349,24 @@ export function LiveSession() {
         </div>
       </div>
 
-      <SectionTimeline
-        sections={activeSession.sections}
-        currentIndex={activeSession.currentSectionIndex}
-      />
+      <div className="session-timeline-row">
+        <SectionTimeline
+          sections={activeSession.sections}
+          currentIndex={activeSession.currentSectionIndex}
+        />
+        <button
+          type="button"
+          onClick={() => setEditingPlan(true)}
+          aria-label="Edit session plan"
+          title="Edit plan"
+          className="timeline-edit-button"
+        >
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" aria-hidden="true">
+            <path d="M4 20h4.1L19 9.1a2.1 2.1 0 0 0 0-3L17.9 5a2.1 2.1 0 0 0-3 0L4 15.9V20Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+            <path d="m13.5 6.4 4.1 4.1" stroke="currentColor" strokeWidth="1.8" />
+          </svg>
+        </button>
+      </div>
 
       {showMore && (
         <div className="session-more-panel flex flex-wrap justify-center gap-3">
@@ -367,13 +377,6 @@ export function LiveSession() {
             className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400 disabled:opacity-30"
           >
             Previous Section
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditingPlan(true)}
-            className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400"
-          >
-            Edit Plan
           </button>
           <button
             type="button"
@@ -390,6 +393,31 @@ export function LiveSession() {
       )}
 
     </div>
+  )
+}
+
+function SectionNotes({ notes }: { notes: string }) {
+  const items = notes
+    .split(/\n+/)
+    .map((item) => item.trim().replace(/^[-•]\s*/, ''))
+    .filter(Boolean)
+    .slice(0, 4)
+
+  if (!items.length) return null
+
+  return (
+    <aside className="section-notes" aria-label="Section notes">
+      <div className="section-notes-heading">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true">
+          <path d="M6 3.5h9l3 3V20.5H6v-17Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M15 3.5v3h3M9 11h6M9 15h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+        <span>Notes</span>
+      </div>
+      <ul>
+        {items.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+      </ul>
+    </aside>
   )
 }
 
