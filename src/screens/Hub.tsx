@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { NowPlayingBar } from '../components/NowPlayingBar'
 import { RemoteStatusPill } from '../components/RemoteStatusPill'
+import { primeCueAudio } from '../lib/cueSound'
 import { useAppState } from '../state/AppStateContext'
 
 export function Hub() {
@@ -16,6 +17,7 @@ export function Hub() {
 
   function beginWith(clientId: string | null) {
     if (!pickingTemplateId) return
+    void primeCueAudio()
     startSession(pickingTemplateId, clientId)
     navigate('/session')
   }

@@ -19,8 +19,8 @@
 /* Pre-mixed rgba rather than color-mix(), which needs a newer WebKit than
    some iPads run. */
 :root {
-  --vignette-soft: rgba(178, 125, 56, 0.4);
-  --vignette-flash: rgba(206, 160, 92, 0.65);
+  --vignette-soft: rgba(178, 125, 56, 0.5);
+  --vignette-flash: rgba(206, 160, 92, 0.82);
   --cue-border: rgba(206, 160, 92, 0.55);
   --cue-text: rgb(240, 200, 150);
 }
@@ -29,29 +29,29 @@
    it is from peripheral vision without reading the words. The accent theme
    still governs the rest of the UI. */
 [data-tone='pressure'] {
-  --vignette-soft: rgba(200, 130, 55, 0.4);
-  --vignette-flash: rgba(224, 158, 84, 0.65);
+  --vignette-soft: rgba(200, 130, 55, 0.5);
+  --vignette-flash: rgba(224, 158, 84, 0.82);
   --cue-border: rgba(224, 158, 84, 0.55);
   --cue-text: rgb(240, 200, 150);
 }
 
 [data-tone='love'] {
-  --vignette-soft: rgba(198, 68, 68, 0.4);
-  --vignette-flash: rgba(222, 100, 100, 0.65);
+  --vignette-soft: rgba(198, 68, 68, 0.5);
+  --vignette-flash: rgba(222, 100, 100, 0.82);
   --cue-border: rgba(222, 100, 100, 0.55);
   --cue-text: rgb(245, 175, 175);
 }
 
 [data-tone='flag'] {
-  --vignette-soft: rgba(72, 130, 190, 0.4);
-  --vignette-flash: rgba(104, 160, 214, 0.65);
+  --vignette-soft: rgba(72, 130, 190, 0.5);
+  --vignette-flash: rgba(104, 160, 214, 0.82);
   --cue-border: rgba(104, 160, 214, 0.55);
   --cue-text: rgb(175, 205, 240);
 }
 
 [data-tone='next'] {
-  --vignette-soft: rgba(138, 100, 200, 0.4);
-  --vignette-flash: rgba(166, 134, 220, 0.65);
+  --vignette-soft: rgba(138, 100, 200, 0.5);
+  --vignette-flash: rgba(166, 134, 220, 0.82);
   --cue-border: rgba(166, 134, 220, 0.55);
   --cue-text: rgb(206, 186, 245);
 }
@@ -144,7 +144,7 @@
    whenever a new cue arrives, so a second signal never gets lost under an
    already-showing one. */
 .ambient-vignette {
-  box-shadow: inset 0 0 min(9vw, 90px) min(1.5vw, 16px) var(--vignette-soft);
+  box-shadow: inset 0 0 min(11vw, 110px) min(2vw, 22px) var(--vignette-soft);
 }
 
 @keyframes glow-flash-once {
@@ -160,8 +160,8 @@
 }
 
 .ambient-vignette-flash {
-  box-shadow: inset 0 0 min(11vw, 110px) min(2vw, 22px) var(--vignette-flash);
-  animation: glow-flash-once 700ms ease-out forwards;
+  box-shadow: inset 0 0 min(14vw, 135px) min(2.6vw, 28px) var(--vignette-flash);
+  animation: glow-flash-once 1100ms ease-out forwards;
 }
 
 @keyframes cue-in {
@@ -272,6 +272,17 @@ button, summary { min-height: 44px; }
 button:disabled { cursor: not-allowed; opacity: 0.4; }
 :focus-visible { outline: 2px solid var(--color-accent-200); outline-offset: 4px; }
 .session-stage { grid-template-columns: minmax(0, 1fr) 17rem; max-width: 780px; margin: 0 auto; width: 100%; }
+.live-session-active body {
+  overflow: hidden;
+}
+.live-session-active .app-shell,
+.live-session-main {
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height: 0;
+}
+.live-session-main {
+  overflow: hidden;
+}
 .section-editor-row {
   grid-template-columns: auto auto minmax(10rem, 1fr) auto auto;
   grid-template-areas: "drag body fields duration remove";
@@ -290,7 +301,34 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   padding-bottom: env(safe-area-inset-bottom);
 }
 .session-page {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  padding-bottom: 0;
+}
+.session-stage,
+.session-dial-column {
+  min-height: 0;
+}
+.pressure-slot.empty {
+  min-height: 0;
+  height: 0;
+}
+.session-more-panel {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+  width: min(92vw, 42rem);
+  max-height: 48dvh;
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgb(38 38 38);
+  border-radius: 1rem;
+  background: rgb(17 17 19 / 0.98);
+  padding: 0.75rem;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.55);
 }
 .pressure-slot {
   min-height: 3rem;
@@ -318,10 +356,61 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 @keyframes cue-hold { 0%, 88.8% { opacity: 1; } 100% { opacity: 0; } }
 .cue-glow { animation: cue-glow 3s ease-in-out 4; }
 @keyframes cue-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.orientation-control {
+  position: fixed;
+  z-index: 45;
+  top: calc(env(safe-area-inset-top) + 0.4rem);
+  right: calc(env(safe-area-inset-right) + 0.5rem);
+  display: none;
+  max-width: min(18rem, calc(100vw - 1rem));
+}
+.orientation-control button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 38px;
+  border: 1px solid rgb(64 64 64 / 0.8);
+  border-radius: 999px;
+  background: rgb(23 23 25 / 0.92);
+  padding: 0.35rem 0.7rem;
+  color: rgb(212 212 216);
+  font-size: 0.75rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(10px);
+}
+.orientation-control p {
+  margin-top: 0.35rem;
+  border-radius: 0.6rem;
+  background: rgb(23 23 25 / 0.96);
+  padding: 0.45rem 0.65rem;
+  color: rgb(212 212 216);
+  font-size: 0.7rem;
+}
+.orientation-control.is-landscape {
+  right: auto;
+  left: calc(env(safe-area-inset-left) + 0.5rem);
+}
 @media (orientation: portrait) and (max-width: 900px) {
+  .orientation-control:not(:empty) {
+    display: block;
+  }
   .session-stage {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     max-width: 560px;
+    height: 100%;
+    align-items: stretch;
+    gap: 0.65rem !important;
+  }
+  .session-dial-column {
+    justify-content: center;
+  }
+  .session-dial-column .timer-dial {
+    flex: 1 1 0;
+    width: auto !important;
+    height: 100% !important;
+    max-width: min(88vw, 350px);
+    max-height: 350px;
   }
   .session-controls {
     display: grid;
@@ -362,22 +451,14 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  .live-session-active body {
-    overflow-y: hidden;
-  }
-  .live-session-active .app-shell,
-  .live-session-main {
-    height: 100dvh;
-    min-height: 0;
+  .orientation-control {
+    display: block;
   }
   .live-session-main {
     overflow: hidden;
     padding: 5px 10px !important;
   }
   .session-page {
-    display: grid;
-    height: 100%;
-    min-height: 0;
     grid-template-rows: minmax(0, 1fr) auto auto;
     gap: 0.35rem !important;
     padding-bottom: 0;
@@ -429,6 +510,9 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .pressure-slot {
     flex: 0 0 auto;
     min-height: 1.5rem;
+  }
+  .pressure-slot.empty {
+    min-height: 0;
   }
   .session-controls {
     display: grid;

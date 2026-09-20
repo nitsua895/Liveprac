@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AmbientGlow } from './AmbientGlow'
+import { OrientationControl } from './OrientationControl'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Hub', end: true },
@@ -19,12 +20,19 @@ export function HubShell() {
   // release that lock after navigation/reload while the refreshed manifest
   // propagates through Android's installed-web-app cache.
   useEffect(() => {
+    if (!inSession && Math.min(window.innerWidth, window.innerHeight) < 600) {
+      void screen.orientation.lock('portrait').catch(() => {
+        // A normal browser tab may require fullscreen; the visible Portrait
+        // control remains available for the installed app.
+      })
+      return
+    }
     try {
       screen.orientation?.unlock()
     } catch {
       // Some browsers expose the API but reserve it for installed/fullscreen apps.
     }
-  }, [location.pathname])
+  }, [inSession, location.pathname])
 
   useEffect(() => {
     document.documentElement.classList.toggle('live-session-active', inSession)
@@ -34,6 +42,7 @@ export function HubShell() {
   return (
     <div className="app-shell min-h-screen bg-neutral-950 text-neutral-100">
       <AmbientGlow />
+      <OrientationControl />
       <main
         className={`app-main mx-auto ${
           inSession
