@@ -1,9 +1,7 @@
-import { hexToHsl } from './color'
-
 export type AccentTheme = 'violet' | 'indigo' | 'teal' | 'sage' | 'amber' | 'crimson' | 'custom'
 
 const STORAGE_KEY = 'liveprac:v1:accentTheme'
-const CUSTOM_HEX_KEY = 'liveprac:v1:accentCustomHex'
+const CUSTOM_HUE_KEY = 'liveprac:v1:accentCustomHue'
 const ACCENT_STEPS: { step: 200 | 300 | 400 | 500 | 700 | 900; lightness: number }[] = [
   { step: 200, lightness: 76 },
   { step: 300, lightness: 65 },
@@ -12,6 +10,12 @@ const ACCENT_STEPS: { step: 200 | 300 | 400 | 500 | 700 | 900; lightness: number
   { step: 700, lightness: 32 },
   { step: 900, lightness: 16 },
 ]
+/** A custom pick only ever chooses a hue — saturation is fixed at the same
+ *  muted level the presets sit around, so there's no way to land on
+ *  something jarring. A hue wheel with saturation/lightness sliders too
+ *  would just let someone recreate the "ugly, oversaturated" outcome this
+ *  is specifically designed to avoid. */
+const CUSTOM_SATURATION = 36
 
 const DEFAULT_ACCENT: AccentTheme = 'violet'
 
@@ -25,7 +29,7 @@ export const ACCENT_THEMES: { value: Exclude<AccentTheme, 'custom'>; label: stri
 ]
 
 /** Must match each palette's --color-accent-400 in index.css. Custom isn't
- *  here since its preview color is whatever hex was actually picked. */
+ *  here since its preview color is whatever hue was actually picked. */
 export const ACCENT_PREVIEW_COLORS: Record<Exclude<AccentTheme, 'custom'>, string> = {
   violet: 'hsl(262 34% 55%)',
   indigo: 'hsl(222 38% 55%)',
@@ -49,12 +53,20 @@ export function getStoredAccent(): AccentTheme {
   return DEFAULT_ACCENT
 }
 
-export function getCustomAccentHex(): string | null {
+export function getCustomHue(): number | null {
   try {
-    return localStorage.getItem(CUSTOM_HEX_KEY)
+    const raw = localStorage.getItem(CUSTOM_HUE_KEY)
+    const value = raw !== null ? Number(raw) : NaN
+    return Number.isFinite(value) ? value : null
   } catch {
     return null
   }
+}
+
+/** For rendering the custom swatch/wheel — the actual muted color a given
+ *  hue resolves to, at the same lightness as each preset's own swatch. */
+export function customAccentPreview(hue: number): string {
+  return `hsl(${hue} ${CUSTOM_SATURATION}% 55%)`
 }
 
 function clearCustomAccentVars(): void {
@@ -63,24 +75,18 @@ function clearCustomAccentVars(): void {
   }
 }
 
-/** Keeps the picked hue but reuses the same lightness ladder and a capped,
- *  muted saturation every preset already shares — this app runs a few feet
- *  from someone's face in a dim room, where a fully saturated custom pick
- *  would read as glare rather than the intended calm accent. */
-function applyCustomAccentVars(hex: string): void {
-  const { h, s } = hexToHsl(hex)
-  const clampedS = Math.min(52, Math.max(18, s))
+function applyCustomAccentVars(hue: number): void {
   for (const { step, lightness } of ACCENT_STEPS) {
-    document.documentElement.style.setProperty(`--color-accent-${step}`, `hsl(${h} ${clampedS}% ${lightness}%)`)
+    document.documentElement.style.setProperty(`--color-accent-${step}`, `hsl(${hue} ${CUSTOM_SATURATION}% ${lightness}%)`)
   }
 }
 
-export function applyCustomAccent(hex: string): void {
-  applyCustomAccentVars(hex)
+export function applyCustomAccent(hue: number): void {
+  applyCustomAccentVars(hue)
   document.documentElement.setAttribute('data-accent', 'custom')
   try {
     localStorage.setItem(STORAGE_KEY, 'custom')
-    localStorage.setItem(CUSTOM_HEX_KEY, hex)
+    localStorage.setItem(CUSTOM_HUE_KEY, String(hue))
   } catch {
     // Private browsing / storage full — pick just won't persist across reloads.
   }
@@ -88,9 +94,9 @@ export function applyCustomAccent(hex: string): void {
 
 export function applyAccent(theme: AccentTheme): void {
   if (theme === 'custom') {
-    const hex = getCustomAccentHex()
-    if (hex) {
-      applyCustomAccent(hex)
+    const hue = getCustomHue()
+    if (hue !== null) {
+      applyCustomAccent(hue)
       return
     }
     theme = DEFAULT_ACCENT

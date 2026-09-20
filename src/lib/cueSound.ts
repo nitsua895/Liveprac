@@ -1,4 +1,4 @@
-import type { AmbientCue } from '../types'
+import type { AmbientCue, CueTone } from '../types'
 import { getCustomSoundUrl, getVolume, hasCustomSound } from './soundSlots'
 
 export type CueSoundMode = 'off' | 'transitions' | 'all'
@@ -34,7 +34,7 @@ export async function primeCueAudio() {
   }
 }
 
-function tone(ctx: AudioContext, frequency: number, start: number, duration: number, peak = 0.025) {
+function note(ctx: AudioContext, frequency: number, start: number, duration: number, peak = 0.025) {
   const oscillator = ctx.createOscillator()
   const gain = ctx.createGain()
   oscillator.type = 'sine'
@@ -47,22 +47,32 @@ function tone(ctx: AudioContext, frequency: number, start: number, duration: num
   oscillator.stop(start + duration + 0.02)
 }
 
-function playPattern(kind: AmbientCue['kind']) {
+/** One gentle default per tone — distinguishable by ear the way the glow
+ *  colors are distinguishable by eye, without any of them sounding like an
+ *  alarm in a quiet treatment room. */
+function playPattern(tone: CueTone) {
   const ctx = context()
   if (ctx.state !== 'running') return
   const start = ctx.currentTime + 0.025
 
-  if (kind === 'timer') {
-    // Two low-volume, consonant notes read as a transition without sounding
-    // like an alarm in a quiet treatment room.
-    tone(ctx, 392, start, 0.48, 0.022)
-    tone(ctx, 523.25, start + 0.18, 0.58, 0.018)
+  if (tone === 'next') {
+    // Two low, consonant notes read as a transition.
+    note(ctx, 392, start, 0.48, 0.022)
+    note(ctx, 523.25, start + 0.18, 0.58, 0.018)
+  } else if (tone === 'love') {
+    // A warmer, rising two-note lift for positive feedback.
+    note(ctx, 523.25, start, 0.34, 0.014)
+    note(ctx, 659.25, start + 0.12, 0.42, 0.012)
+  } else if (tone === 'flag') {
+    // Lower and single-note — acknowledges without sounding negative.
+    note(ctx, 329.63, start, 0.4, 0.011)
   } else {
-    tone(ctx, 440, start, 0.42, 0.012)
+    // pressure — a neutral, unobtrusive single blip.
+    note(ctx, 440, start, 0.42, 0.012)
   }
 }
 
-async function playCustomTone(tone: AmbientCue['tone']): Promise<void> {
+async function playCustomTone(tone: CueTone): Promise<void> {
   const url = await getCustomSoundUrl(tone)
   if (!url) return
   const audio = new Audio(url)
@@ -80,7 +90,7 @@ export function playCueSound(cue: AmbientCue) {
     return
   }
   try {
-    playPattern(cue.kind)
+    playPattern(cue.tone)
   } catch {
     // Keep every visual cue working if the browser suspends Web Audio.
   }
@@ -90,14 +100,14 @@ export function playCueSound(cue: AmbientCue) {
  *  sound if any, otherwise the built-in pattern — ignoring the on/off mode.
  *  Used by the Settings preview buttons so testing a sound always works,
  *  even while cue sound is set to Off. */
-export async function previewTone(tone: AmbientCue['tone']): Promise<void> {
+export async function previewTone(tone: CueTone): Promise<void> {
   if (hasCustomSound(tone)) {
     await playCustomTone(tone).catch(() => {})
     return
   }
   const ctx = context()
   if (ctx.state === 'suspended') await ctx.resume()
-  playPattern(tone === 'next' ? 'timer' : 'preference')
+  playPattern(tone)
 }
 
 export async function previewCueSound(mode: CueSoundMode) {
@@ -105,7 +115,7 @@ export async function previewCueSound(mode: CueSoundMode) {
   try {
     const ctx = context()
     if (ctx.state === 'suspended') await ctx.resume()
-    playPattern(mode === 'all' ? 'preference' : 'timer')
+    playPattern(mode === 'all' ? 'pressure' : 'next')
   } catch {
     // Settings still persist even on a browser that cannot create an audio context.
   }

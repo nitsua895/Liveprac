@@ -29,12 +29,14 @@ import {
   ACCENT_THEMES,
   applyAccent,
   applyCustomAccent,
-  getCustomAccentHex,
+  customAccentPreview,
+  getCustomHue,
   getStoredAccent,
   type AccentTheme,
 } from '../lib/theme'
 import { VISIBILITY_KEYS, VISIBILITY_LABELS, isVisible, setVisible, type VisibilityKey } from '../lib/visibility'
 import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
+import { HueWheel } from '../components/HueWheel'
 import { GameControllerCard } from '../components/GameControllerCard'
 import { GoogleCalendarCard } from '../components/GoogleCalendarCard'
 import { useAppState } from '../state/AppStateContext'
@@ -62,9 +64,14 @@ function IntegrationCard({
   )
 }
 
+const CUSTOM_SWATCH_RAINBOW =
+  'conic-gradient(from 90deg, hsl(0 75% 58%), hsl(60 75% 58%), hsl(120 75% 58%), hsl(180 75% 58%), hsl(240 75% 58%), hsl(300 75% 58%), hsl(360 75% 58%))'
+
 function AccentPicker() {
   const [accent, setAccent] = useState<AccentTheme>(() => getStoredAccent())
-  const [customHex, setCustomHex] = useState(() => getCustomAccentHex() ?? '#7c5cbf')
+  const [customHue, setCustomHue] = useState(() => getCustomHue() ?? 262)
+  const [wheelOpen, setWheelOpen] = useState(false)
+  const hasCustom = getCustomHue() !== null
 
   return (
     <div className="surface-card p-5">
@@ -80,6 +87,7 @@ function AccentPicker() {
             onClick={() => {
               applyAccent(theme.value)
               setAccent(theme.value)
+              setWheelOpen(false)
             }}
             className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
               accent === theme.value ? 'border-accent-400/60 bg-accent-500/10' : 'border-neutral-800'
@@ -93,30 +101,42 @@ function AccentPicker() {
           </button>
         ))}
 
-        <label
-          className={`relative flex flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
+        <button
+          type="button"
+          onClick={() => setWheelOpen((v) => !v)}
+          className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
             accent === 'custom' ? 'border-accent-400/60 bg-accent-500/10' : 'border-neutral-800'
           }`}
         >
-          <span className="h-8 w-8 rounded-full border border-white/10" style={{ background: customHex }} />
+          {/* Deliberately not a solid swatch until a custom hue is actually
+              active — a purple-filled circle here just reads as a second,
+              redundant "Deep Violet" option. */}
+          {accent === 'custom' && hasCustom ? (
+            <span className="h-8 w-8 rounded-full" style={{ background: customAccentPreview(customHue) }} />
+          ) : (
+            <span className="h-8 w-8 rounded-full p-[3px]" style={{ background: CUSTOM_SWATCH_RAINBOW }}>
+              <span className="block h-full w-full rounded-full bg-neutral-950" />
+            </span>
+          )}
           <span className="text-xs text-neutral-400">Custom…</span>
-          <input
-            type="color"
-            value={customHex}
-            onChange={(e) => {
-              setCustomHex(e.target.value)
-              applyCustomAccent(e.target.value)
+        </button>
+      </div>
+
+      {wheelOpen && (
+        <div className="mt-4 flex flex-col items-center gap-3 border-t border-neutral-800 pt-4">
+          <HueWheel
+            hue={customHue}
+            onChange={(hue) => {
+              setCustomHue(hue)
+              applyCustomAccent(hue)
               setAccent('custom')
             }}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            aria-label="Pick a custom accent color"
           />
-        </label>
-      </div>
-      <p className="mt-3 text-xs text-neutral-600">
-        A custom color keeps its hue but is toned down to the same muted brightness as the presets —
-        full saturation reads as glare a few feet from someone's face in a dim room.
-      </p>
+          <p className="text-center text-xs text-neutral-600">
+            Rotate to choose a hue — brightness and saturation stay fixed to match the presets.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
