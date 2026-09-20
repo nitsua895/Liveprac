@@ -1,7 +1,6 @@
 /**
- * The session-end sound: a gentle chime that fades in and loops softly until
- * the therapist closes out, like a soft alarm rather than a single ding that
- * can be missed mid-stroke.
+ * The session-end sound: one gentle chime. The full-screen completion state
+ * remains until acknowledged, so repeating audio would only disturb the room.
  *
  * Mobile browsers block audio.play() until the page has seen a real user
  * gesture. The live session screen has plenty of taps before a session ever
@@ -10,7 +9,7 @@
  */
 const SRC = `${import.meta.env.BASE_URL}sounds/session-end-chime.mp3`
 const FADE_MS = 3000
-const TARGET_VOLUME = 0.65
+const TARGET_VOLUME = 0.18
 
 let audio: HTMLAudioElement | null = null
 let fadeTimer: ReturnType<typeof setInterval> | null = null
@@ -19,7 +18,7 @@ let primed = false
 function getAudio(): HTMLAudioElement {
   if (!audio) {
     audio = new Audio(SRC)
-    audio.loop = true
+    audio.loop = false
     audio.preload = 'auto'
   }
   return audio

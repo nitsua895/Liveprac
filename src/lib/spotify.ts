@@ -21,7 +21,13 @@ const API = 'https://api.spotify.com/v1'
 // Spotify client IDs identify an app but do not grant access and are safe to
 // ship in browser code. PKCE keeps authentication secret-free.
 const CLIENT_ID = 'eea47657938545eba54a5e6bf63b4c50'
-const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
+const SCOPES = [
+  'user-read-playback-state',
+  'user-modify-playback-state',
+  'user-read-currently-playing',
+  'user-library-read',
+  'user-library-modify',
+].join(' ')
 
 const KEYS = {
   verifier: 'liveprac:v1:spotifyVerifier',
@@ -348,3 +354,33 @@ export const setShuffle = (enabled: boolean) =>
   command(`/me/player/shuffle?state=${enabled}`, 'PUT')
 export const setRepeat = (state: NowPlayingState['repeat']) =>
   command(`/me/player/repeat?state=${state}`, 'PUT')
+
+function trackId(uri: string | null): string | null {
+  if (!uri?.startsWith('spotify:track:')) return null
+  return uri.slice('spotify:track:'.length) || null
+}
+
+export function openTrack(uri: string | null) {
+  const id = trackId(uri)
+  if (!id) return
+  window.open(`https://open.spotify.com/track/${encodeURIComponent(id)}`, '_blank', 'noopener,noreferrer')
+}
+
+export async function isTrackSaved(uri: string | null): Promise<boolean> {
+  const id = trackId(uri)
+  if (!id) return false
+  const res = await call(`/me/tracks/contains?ids=${encodeURIComponent(id)}`)
+  if (!res?.ok) return false
+  const saved = await res.json() as boolean[]
+  return Boolean(saved[0])
+}
+
+export async function setTrackSaved(uri: string | null, saved: boolean): Promise<string | null> {
+  const id = trackId(uri)
+  if (!id) return 'No Spotify track is currently playing'
+  const res = await call(`/me/tracks?ids=${encodeURIComponent(id)}`, { method: saved ? 'PUT' : 'DELETE' })
+  if (!res) return 'Not connected'
+  if (res.status === 403) return 'Reconnect Spotify once in Settings to enable Save'
+  if (!res.ok && res.status !== 204) return `Spotify error ${res.status}`
+  return null
+}

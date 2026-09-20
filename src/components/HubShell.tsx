@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AmbientGlow } from './AmbientGlow'
+import { NowPlayingBar } from './NowPlayingBar'
 import { OrientationControl } from './OrientationControl'
 
 const NAV_ITEMS = [
@@ -40,30 +41,18 @@ export function HubShell() {
   }, [inSession])
 
   return (
-    <div className="app-shell min-h-screen bg-neutral-950 text-neutral-100">
+    <div className={`app-shell bg-neutral-950 text-neutral-100 ${inSession ? 'is-session' : ''}`}>
       <AmbientGlow />
       <OrientationControl />
-      <main
-        className={`app-main mx-auto ${
-          inSession
-            ? 'live-session-main max-w-6xl px-3 pb-4 pt-3 sm:px-5 sm:pb-6 sm:pt-5 lg:px-6 lg:pt-6'
-            : 'max-w-4xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:px-8 lg:pt-14'
-        }`}
-      >
-        <Outlet />
-      </main>
-      <nav
-        hidden={inSession}
-        className="app-nav fixed inset-x-0 bottom-0 border-t border-neutral-900 bg-neutral-950/95 backdrop-blur"
-      >
-        <div className="mx-auto flex max-w-4xl justify-around px-1 py-2 sm:px-4 sm:py-3">
+      <nav hidden={inSession} className="app-nav border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl justify-around px-1 py-2 sm:justify-start sm:gap-2 sm:px-6 sm:py-3 lg:px-8">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `rounded-lg px-2 py-1.5 text-xs transition-colors sm:px-4 sm:text-sm ${
+                `rounded-lg px-3 py-1.5 text-xs transition-colors sm:px-4 sm:text-sm ${
                   isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
                 }`
               }
@@ -73,6 +62,18 @@ export function HubShell() {
           ))}
         </div>
       </nav>
+      <main
+        className={`app-main mx-auto ${
+          inSession
+            ? 'live-session-main max-w-6xl px-3 pb-4 pt-3 sm:px-5 sm:pb-6 sm:pt-5 lg:px-6 lg:pt-6'
+            : 'max-w-4xl px-4 pb-6 pt-6 sm:px-6 sm:pt-10 lg:px-8 lg:pt-14'
+        }`}
+      >
+        <Outlet />
+      </main>
+      <footer className="app-player-dock">
+        <NowPlayingBar />
+      </footer>
     </div>
   )
 }

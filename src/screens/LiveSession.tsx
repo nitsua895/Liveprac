@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BodyZoneDiagram } from '../components/BodyZoneDiagram'
-import { NowPlayingBar } from '../components/NowPlayingBar'
 import { SectionListEditor } from '../components/SectionListEditor'
 import { SectionTimeline } from '../components/SectionTimeline'
 import { TimerDial } from '../components/TimerDial'
@@ -13,6 +12,24 @@ import { acquireWakeLock, reacquireOnVisible, releaseWakeLock } from '../lib/wak
 import { useAppState } from '../state/AppStateContext'
 
 const QUICK_EXTEND_SEC = 2 * 60
+const COMPLETED_SESSION_KEY = 'liveprac:v1:completedSession'
+
+function completedSessionId(): string | null {
+  try {
+    return localStorage.getItem(COMPLETED_SESSION_KEY)
+  } catch {
+    return null
+  }
+}
+
+function rememberCompletedSession(instanceId: string | null) {
+  try {
+    if (instanceId) localStorage.setItem(COMPLETED_SESSION_KEY, instanceId)
+    else localStorage.removeItem(COMPLETED_SESSION_KEY)
+  } catch {
+    // The completion screen still works for this visit if storage is unavailable.
+  }
+}
 
 export function LiveSession() {
   const {
@@ -33,9 +50,19 @@ export function LiveSession() {
   const [now, setNow] = useState(() => Date.now())
   const [editingPlan, setEditingPlan] = useState(false)
   const [showMore, setShowMore] = useState(false)
-  const [sessionEnded, setSessionEnded] = useState(false)
+  const [sessionEnded, setSessionEnded] = useState(
+    () => Boolean(activeSession && completedSessionId() === activeSession.instanceId),
+  )
   const cuedSectionRef = useRef<number | null>(null)
   const warnedSectionRef = useRef<number | null>(null)
+
+  const completeSession = useCallback(() => {
+    if (!activeSession) return
+    setSessionEnded(true)
+    rememberCompletedSession(activeSession.instanceId)
+    playSessionEndChime()
+    if (!activeSession.paused) togglePause()
+  }, [activeSession, togglePause])
   useEffect(() => {
     cuedSectionRef.current = null
     warnedSectionRef.current = null
@@ -90,11 +117,9 @@ export function LiveSession() {
     } else {
       // Last section ran out — stop the clock and hand off to the closing
       // screen instead of letting it count into overtime unattended.
-      setSessionEnded(true)
-      playSessionEndChime()
-      togglePause()
+      completeSession()
     }
-  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, togglePause])
+  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, completeSession])
 
   // Safety net: never leave the chime playing after leaving this screen.
   useEffect(() => () => stopSessionEndChime(), [])
@@ -188,12 +213,13 @@ export function LiveSession() {
     const sessionEvents = events.filter((e) => e.sessionInstanceId === activeSession.instanceId)
     const lovedCount = sessionEvents.filter((e) => e.type === 'loved').length
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center">
+      <div className="session-complete flex flex-col items-center justify-center gap-5 px-5 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-400">Session complete</p>
-        <h1 className="text-3xl font-light text-neutral-100">
+        <h1 className="text-3xl font-light text-neutral-100 sm:text-4xl">
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </h1>
+        <p className="max-w-sm text-sm leading-relaxed text-neutral-500">Take a breath. The session has been saved.</p>
         {lovedCount > 0 && (
           <p className="text-neutral-500">
             {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
@@ -203,12 +229,13 @@ export function LiveSession() {
           type="button"
           onClick={() => {
             stopSessionEndChime()
+            rememberCompletedSession(null)
             endSession()
             navigate('/')
           }}
-          className="rounded-full bg-accent-500 px-8 py-4 text-xl font-medium text-white"
+          className="mt-3 rounded-full border border-neutral-700 bg-neutral-900/50 px-7 py-3 text-base text-neutral-300"
         >
-          Close out session
+          Return to hub
         </button>
       </div>
     )
@@ -292,8 +319,7 @@ export function LiveSession() {
             onClick={() => {
               if (nextSection) advanceSection()
               else if (window.confirm('Finish this session? Recorded feedback will be kept.')) {
-                endSession()
-                navigate('/')
+                completeSession()
               }
             }}
             disabled={Boolean(nextSection) && activeSession.paused}
@@ -353,8 +379,7 @@ export function LiveSession() {
             type="button"
             onClick={() => {
               if (!window.confirm('End this session? Recorded feedback will be kept.')) return
-              endSession()
-              navigate('/')
+              completeSession()
             }}
             className="rounded-full border border-red-900/60 px-5 py-2.5 text-red-400/80"
           >
@@ -364,7 +389,6 @@ export function LiveSession() {
         </div>
       )}
 
-      <NowPlayingBar compact />
     </div>
   )
 }
