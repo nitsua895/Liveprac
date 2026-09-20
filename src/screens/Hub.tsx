@@ -31,7 +31,7 @@ export function Hub() {
       <NowPlayingBar compact />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm uppercase tracking-wide text-neutral-500">Start a session</h2>
+        <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">Start a session</h2>
         {templates.length === 0 && (
           <p className="text-neutral-500">
             No session templates yet. Create one in Build.

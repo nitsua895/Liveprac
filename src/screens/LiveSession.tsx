@@ -201,18 +201,23 @@ export function LiveSession() {
               {displayedSectionRemainingSec < 0 ? '+' : ''}
               {formatClock(Math.abs(displayedSectionRemainingSec))}
             </span>
-            <div className="session-remaining mt-2 flex flex-col items-center gap-0.5 text-neutral-400">
-              <span className="text-[10px] font-medium uppercase tracking-[0.12em]">Session</span>
-              <span
-                className={`font-mono text-xl leading-none tabular-nums sm:text-2xl ${
-                  sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
-                }`}
-              >
-                {sessionRemainingSec < 0 ? '+' : ''}
-                {formatClock(Math.abs(sessionRemainingSec))}
-              </span>
-            </div>
           </TimerDial>
+          {/* Outside the dial's own circle on purpose — text inside the ring
+              scales with the SVG geometry, but this caption is plain HTML
+              and doesn't, so at a small rendered dial size it used to spill
+              past the ring and overlap the stroke. Living below the dial, it
+              can never collide with it at any size. */}
+          <div className="session-remaining mt-2 flex flex-col items-center gap-0.5 text-neutral-400">
+            <span className="text-xs font-medium uppercase tracking-[0.14em]">Session</span>
+            <span
+              className={`font-mono text-xl leading-none tabular-nums sm:text-2xl ${
+                sessionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-400'
+              }`}
+            >
+              {sessionRemainingSec < 0 ? '+' : ''}
+              {formatClock(Math.abs(sessionRemainingSec))}
+            </span>
+          </div>
           <div className={`pressure-slot flex items-center justify-center ${netPressure === 0 ? 'empty' : ''}`}>
             <PressureReadout net={netPressure} />
           </div>
@@ -368,7 +373,7 @@ function RemoteSimulator() {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-xs uppercase tracking-wide text-neutral-600"
+          className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-600"
         >
           Remote simulator — hide
         </button>

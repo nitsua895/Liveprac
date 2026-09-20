@@ -61,7 +61,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
     return (
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-neutral-800/80 bg-neutral-900/45 px-4 py-3 text-neutral-600">
         <Icon name="spotify" className="h-5 w-5" />
-        <span className="text-xs font-medium uppercase tracking-[0.16em]">Spotify</span>
+        <span className="text-xs font-medium uppercase tracking-[0.14em]">Spotify</span>
         <button
           type="button"
           disabled={connecting}
