@@ -23,12 +23,9 @@ export function Hub() {
   }
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
-      <header className="flex items-baseline justify-between">
+    <div className="hub-home flex flex-col gap-6 sm:gap-8">
+      <header>
         <h1 className="text-2xl font-light text-neutral-200">Liveprac</h1>
-        <span className="text-sm text-neutral-600">
-          {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-        </span>
       </header>
 
       <RemoteStatusPill />

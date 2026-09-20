@@ -10,11 +10,15 @@ import { completeAuthFromUrl as completeGoogleAuthFromUrl } from './lib/googleCa
 import { bluetoothRemote } from './lib/bluetoothRemote'
 import { startBleDispatch } from './lib/bleMapping'
 import { primeChime } from './lib/chime'
+import { primeCueAudio } from './lib/cueSound'
 
 applyAccent(getStoredAccent())
 // Unlocks audio playback on the first tap anywhere, so the session-end chime
 // isn't silently blocked by mobile autoplay restrictions hours later.
-document.addEventListener('pointerdown', primeChime, { once: true })
+document.addEventListener('pointerdown', () => {
+  primeChime()
+  void primeCueAudio()
+}, { once: true })
 // Translates raw BLE notifications into remote-control events app-wide, not
 // just while the live session screen is mounted — the connection is meant
 // to hold across an entire shift, not just one open tab of the app.

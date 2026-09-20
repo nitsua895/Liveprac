@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AmbientGlow } from './AmbientGlow'
+import { AppClock } from './AppClock'
 import { NowPlayingBar } from './NowPlayingBar'
 import { OrientationControl } from './OrientationControl'
 
@@ -44,24 +45,28 @@ export function HubShell() {
     <div className={`app-shell bg-neutral-950 text-neutral-100 ${inSession ? 'is-session' : ''}`}>
       <AmbientGlow />
       <OrientationControl />
-      <nav hidden={inSession} className="app-nav border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl justify-around px-1 py-2 sm:justify-start sm:gap-2 sm:px-6 sm:py-3 lg:px-8">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-1.5 text-xs transition-colors sm:px-4 sm:text-sm ${
-                  isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+      <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
+        <div className="app-topbar-inner mx-auto flex max-w-6xl items-center px-1 sm:px-5 lg:px-6">
+          <nav hidden={inSession} className="app-nav flex min-w-0 flex-1 justify-around py-2 sm:justify-start sm:gap-2 sm:py-3">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-1.5 text-xs transition-colors sm:px-4 sm:text-sm ${
+                    isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          {inSession && <span className="flex-1" />}
+          <AppClock />
         </div>
-      </nav>
+      </header>
       <main
         className={`app-main mx-auto ${
           inSession
