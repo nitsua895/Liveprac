@@ -295,10 +295,16 @@ export const play = () => command('/me/player/play', 'PUT')
 export const pause = () => command('/me/player/pause', 'PUT')
 export const next = () => command('/me/player/next', 'POST')
 export const previous = () => command('/me/player/previous', 'POST')
-export const setVolume = (percent: number, deviceId?: string | null) => {
-  const query = new URLSearchParams({ volume_percent: String(Math.round(percent)) })
+export async function setVolume(percent: number, deviceId?: string | null) {
+  const normalized = String(Math.max(0, Math.min(100, Math.round(percent))))
+  const query = new URLSearchParams({ volume_percent: normalized })
   if (deviceId) query.set('device_id', deviceId)
-  return command(`/me/player/volume?${query}`, 'PUT')
+  const targetedError = await command(`/me/player/volume?${query}`, 'PUT')
+  if (!targetedError || !deviceId) return targetedError
+
+  // Spotify device IDs can rotate or briefly go stale after a Connect
+  // handoff. Retry the currently-active output before surfacing an error.
+  return command(`/me/player/volume?volume_percent=${normalized}`, 'PUT')
 }
 export interface SpotifyDevice {
   id: string | null

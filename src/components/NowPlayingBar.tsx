@@ -86,13 +86,10 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   const repeatLabel =
     state.repeat === 'track' ? 'Repeat track' : state.repeat === 'context' ? 'Repeat all' : 'Repeat off'
   const volumeHelp = !state.supportsVolume && state.deviceName
-    ? state.deviceType === 'smartphone'
-      ? 'Phone volume uses its physical buttons'
-      : `Spotify does not expose volume for ${state.deviceName}`
+    ? `Spotify reports limited volume support for ${state.deviceName}; Liveprac will still try direct control.`
     : null
 
   function commitVolume(value: string) {
-    if (!state.supportsVolume) return
     void run(() => spotify.setVolume(Number(value), state.deviceId))
   }
 
@@ -110,9 +107,9 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-800/80 bg-neutral-900/55 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-4">
-        <div className="hidden h-12 w-12 overflow-hidden rounded-lg bg-neutral-800 shadow-lg sm:block">
+    <section className="spotify-player rounded-2xl border border-neutral-800/80 bg-neutral-900/55 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+      <div className="spotify-primary grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-4">
+        <div className="spotify-album hidden h-12 w-12 overflow-hidden rounded-lg bg-neutral-800 shadow-lg sm:block">
           {state.albumArtUrl ? (
             <img src={state.albumArtUrl} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -231,7 +228,7 @@ export function NowPlayingBar({ compact = false }: { compact?: boolean }) {
                 min={0}
                 max={100}
                 value={volume}
-                disabled={!state.supportsVolume}
+                disabled={!state.deviceName}
                 onChange={(event) => setLocal('volumePercent', Number(event.target.value))}
                 onPointerUp={(event) => commitVolume(event.currentTarget.value)}
                 onTouchEnd={(event) => commitVolume(event.currentTarget.value)}
