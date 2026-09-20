@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AmbientGlow } from './AmbientGlow'
 
@@ -11,15 +12,32 @@ const NAV_ITEMS = [
 export function HubShell() {
   // The live session hides the nav and runs tighter padding: everything has to
   // be legible at a glance from across the table without scrolling.
-  const inSession = useLocation().pathname === '/session'
+  const location = useLocation()
+  const inSession = location.pathname === '/session'
+
+  // Older installed builds declared a landscape-only manifest. Explicitly
+  // release that lock after navigation/reload while the refreshed manifest
+  // propagates through Android's installed-web-app cache.
+  useEffect(() => {
+    try {
+      screen.orientation?.unlock()
+    } catch {
+      // Some browsers expose the API but reserve it for installed/fullscreen apps.
+    }
+  }, [location.pathname])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('live-session-active', inSession)
+    return () => document.documentElement.classList.remove('live-session-active')
+  }, [inSession])
 
   return (
     <div className="app-shell min-h-screen bg-neutral-950 text-neutral-100">
       <AmbientGlow />
       <main
-        className={`mx-auto ${
+        className={`app-main mx-auto ${
           inSession
-            ? 'max-w-6xl px-3 pb-4 pt-3 sm:px-5 sm:pb-6 sm:pt-5 lg:px-6 lg:pt-6'
+            ? 'live-session-main max-w-6xl px-3 pb-4 pt-3 sm:px-5 sm:pb-6 sm:pt-5 lg:px-6 lg:pt-6'
             : 'max-w-4xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:px-8 lg:pt-14'
         }`}
       >
