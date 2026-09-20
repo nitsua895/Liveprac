@@ -671,25 +671,23 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   content: '';
   position: absolute;
   z-index: -1;
-  width: min(38rem, 84vw);
-  aspect-ratio: 1;
-  border-radius: 44% 56% 62% 38% / 52% 44% 56% 48%;
-  background: radial-gradient(circle at 44% 46%, var(--color-accent-700) 0%, var(--color-accent-900) 42%, transparent 70%);
-  filter: blur(54px);
+  inset: -14%;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 42% 38% at 18% 12%, var(--color-accent-700) 0%, var(--color-accent-900) 36%, transparent 68%);
+  filter: blur(44px);
   opacity: 0.22;
   pointer-events: none;
   animation: hub-glow-drift 18s ease-in-out infinite alternate;
 }
 .hub-home::before {
-  top: -17rem;
-  left: -12rem;
+  transform-origin: 18% 12%;
 }
 .hub-home::after {
-  right: -16rem;
-  bottom: -17rem;
+  background: radial-gradient(ellipse 38% 34% at 88% 86%, var(--color-accent-700) 0%, var(--color-accent-900) 34%, transparent 68%);
   opacity: 0.14;
   animation-delay: -8s;
   animation-direction: alternate-reverse;
+  transform-origin: 88% 86%;
 }
 @keyframes hub-glow-drift {
   from { transform: translate3d(-1%, -1%, 0) rotate(-4deg) scale(0.96); }
@@ -911,14 +909,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   }
   .hub-home {
     border-radius: 0.9rem;
-  }
-  .hub-home::before {
-    top: -10rem;
-    left: -14rem;
-  }
-  .hub-home::after {
-    right: -15rem;
-    bottom: -10rem;
   }
   .app-player-dock {
     padding-inline: 0.3rem;
