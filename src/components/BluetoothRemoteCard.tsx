@@ -74,7 +74,7 @@ export function BluetoothRemoteCard() {
 
   if (status === 'unsupported') {
     return (
-      <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+      <div className="surface-card p-5">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <p className="text-neutral-100">Bluetooth Remote</p>
           <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
@@ -91,7 +91,7 @@ export function BluetoothRemoteCard() {
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+    <div className="surface-card p-5">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-neutral-100">Bluetooth Remote</p>
         <span
@@ -126,7 +126,7 @@ export function BluetoothRemoteCard() {
           <button
             type="button"
             onClick={() => void connect()}
-            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950"
+            className="primary-action"
           >
             Connect remote
           </button>

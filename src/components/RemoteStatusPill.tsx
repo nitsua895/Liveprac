@@ -29,7 +29,7 @@ export function RemoteStatusPill() {
   return (
     <Link
       to="/settings"
-      className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-sm"
+      className="surface-card surface-card-interactive flex items-center gap-2 px-3 py-2 text-sm"
     >
       <span
         className={`h-2 w-2 rounded-full ${

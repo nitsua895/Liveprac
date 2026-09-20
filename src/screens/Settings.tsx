@@ -15,7 +15,7 @@ function IntegrationCard({
   detail: string
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+    <div className="surface-card p-5">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-neutral-100">{title}</p>
         <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
@@ -31,7 +31,7 @@ function AccentPicker() {
   const [accent, setAccent] = useState<AccentTheme>(() => getStoredAccent())
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+    <div className="surface-card p-5">
       <p className="mb-1 text-neutral-100">Accent Color</p>
       <p className="mb-4 text-sm text-neutral-500">
         Applies everywhere (dials, glow, highlights) — try them in the actual treatment room lighting.
@@ -77,7 +77,7 @@ function CueSoundCard() {
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+    <div className="surface-card p-5">
       <p className="mb-1 text-neutral-100">Session cue sound</p>
       <p className="mb-4 text-sm text-neutral-500">
         The edge glow always appears. Transitions adds a very quiet two-note cue; client feedback stays private and visual.
@@ -117,7 +117,7 @@ function SpotifyCard() {
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+    <div className="surface-card p-5">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-neutral-100">Spotify</p>
         <span className="rounded-full border border-neutral-800 px-3 py-0.5 text-xs text-neutral-500">
@@ -145,7 +145,7 @@ function SpotifyCard() {
         <button
           type="button"
           onClick={() => void connect()}
-          className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950"
+          className="primary-action"
         >
           Connect Spotify
         </button>
@@ -163,8 +163,11 @@ function SpotifyCard() {
 
 export function Settings() {
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-light text-neutral-200">Settings</h1>
+    <div className="page-stack gap-4">
+      <header className="mb-1">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle mt-1">Tune the room experience and connect the services you use.</p>
+      </header>
 
       <AccentPicker />
 

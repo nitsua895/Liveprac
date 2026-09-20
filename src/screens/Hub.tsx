@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { RemoteStatusPill } from '../components/RemoteStatusPill'
 import { TodaysAppointments } from '../components/TodaysAppointments'
 import { primeCueAudio } from '../lib/cueSound'
+import { sessionDurationSec } from '../lib/time'
 import { useAppState } from '../state/AppStateContext'
 
 export function Hub() {
@@ -23,9 +24,12 @@ export function Hub() {
   }
 
   return (
-    <div className="hub-home flex flex-col gap-6 sm:gap-8">
-      <header>
-        <h1 className="text-2xl font-light text-neutral-200">Liveprac</h1>
+    <div className="hub-home page-stack">
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">Liveprac</h1>
+          <p className="page-subtitle mt-1">Your practice, ready at a glance.</p>
+        </div>
       </header>
 
       <RemoteStatusPill />
@@ -33,9 +37,9 @@ export function Hub() {
       <TodaysAppointments />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">Start a session</h2>
+        <h2 className="section-label">Start a session</h2>
         {templates.length === 0 && (
-          <p className="text-neutral-500">
+          <p className="empty-state">
             No session templates yet. Create one in Build.
           </p>
         )}
@@ -45,11 +49,16 @@ export function Hub() {
               key={template.id}
               type="button"
               onClick={() => setPickingTemplateId(template.id)}
-              className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 text-left transition-colors hover:border-accent-500/40"
+              className="surface-card surface-card-interactive group p-5 text-left"
             >
-              <p className="text-lg text-neutral-100">{template.name}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-lg text-neutral-100">{template.name}</p>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" className="mt-1 shrink-0 text-neutral-700 group-hover:text-accent-400" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
               <p className="mt-1 text-sm text-neutral-500">
-                {template.sections.length} sections
+                {template.sections.length} sections · {Math.round(sessionDurationSec(template.sections) / 60)} min
               </p>
             </button>
           ))}
@@ -57,9 +66,9 @@ export function Hub() {
       </section>
 
       {pickingTemplateId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-6">
-          <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
-            <h3 className="mb-4 text-lg text-neutral-100">Who is this session for?</h3>
+        <div className="modal-backdrop">
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="start-session-title">
+            <h3 id="start-session-title" className="mb-4 text-lg text-neutral-100">Who is this session for?</h3>
             <div className="flex flex-col gap-2">
               <button
                 type="button"
@@ -94,7 +103,7 @@ export function Hub() {
                   setNewClientName('')
                   beginWith(client.id)
                 }}
-                className="rounded-lg bg-accent-500 px-3 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
+                className="primary-action disabled:opacity-40"
               >
                 Add & start
               </button>
