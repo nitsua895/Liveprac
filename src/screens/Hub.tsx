@@ -24,14 +24,7 @@ export function Hub() {
   }
 
   return (
-    <div className="hub-home page-stack">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Liveprac</h1>
-          <p className="page-subtitle mt-1">Your practice, ready at a glance.</p>
-        </div>
-      </header>
-
+    <div className="page-stack">
       <RemoteStatusPill />
 
       <TodaysAppointments />

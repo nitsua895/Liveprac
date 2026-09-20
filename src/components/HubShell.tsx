@@ -6,8 +6,8 @@ import { NowPlayingBar } from './NowPlayingBar'
 import { OrientationControl } from './OrientationControl'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Hub', end: true },
-  { to: '/build', label: 'Build' },
+  { to: '/', label: 'Home', end: true },
+  { to: '/build', label: 'Routines' },
   { to: '/log', label: 'Client Log' },
   { to: '/settings', label: 'Settings' },
 ]
@@ -46,7 +46,10 @@ export function HubShell() {
       <AmbientGlow />
       <OrientationControl />
       <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
-        <div className={`app-topbar-inner mx-auto flex items-center px-1 sm:px-6 lg:px-8 ${inSession ? 'max-w-6xl' : 'max-w-4xl'}`}>
+        <div className={`app-topbar-inner mx-auto flex items-center gap-2 px-1 sm:px-6 lg:px-8 ${inSession ? 'max-w-6xl' : 'max-w-4xl'}`}>
+          <span className="app-logo shrink-0 pl-1 text-sm font-medium tracking-tight text-neutral-500 sm:pl-0">
+            Liveprac
+          </span>
           <nav aria-label="Primary" hidden={inSession} className="app-nav flex min-w-0 flex-1 justify-around sm:justify-start sm:gap-2">
             {NAV_ITEMS.map((item) => (
               <NavLink

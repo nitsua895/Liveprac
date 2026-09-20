@@ -478,12 +478,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
-.page-subtitle {
-  max-width: 34rem;
-  color: rgb(113 113 122);
-  font-size: 0.875rem;
-  line-height: 1.55;
-}
 .section-label {
   color: rgb(113 113 122);
   font-size: 0.7rem;
@@ -658,40 +652,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   border-radius: 50%;
   background: var(--color-accent-400);
   box-shadow: 0 0 8px var(--color-accent-700);
-}
-.hub-home {
-  position: relative;
-  isolation: isolate;
-  min-height: 100%;
-  overflow: hidden;
-  border-radius: 1.25rem;
-}
-.hub-home::before,
-.hub-home::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -14%;
-  border-radius: inherit;
-  background: radial-gradient(ellipse 42% 38% at 18% 12%, var(--color-accent-700) 0%, var(--color-accent-900) 36%, transparent 68%);
-  filter: blur(44px);
-  opacity: 0.22;
-  pointer-events: none;
-  animation: hub-glow-drift 18s ease-in-out infinite alternate;
-}
-.hub-home::before {
-  transform-origin: 18% 12%;
-}
-.hub-home::after {
-  background: radial-gradient(ellipse 38% 34% at 88% 86%, var(--color-accent-700) 0%, var(--color-accent-900) 34%, transparent 68%);
-  opacity: 0.14;
-  animation-delay: -8s;
-  animation-direction: alternate-reverse;
-  transform-origin: 88% 86%;
-}
-@keyframes hub-glow-drift {
-  from { transform: translate3d(-1%, -1%, 0) rotate(-4deg) scale(0.96); }
-  to { transform: translate3d(5%, 4%, 0) rotate(8deg) scale(1.08); }
 }
 .session-page {
   display: grid;
@@ -907,9 +867,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .page-header {
     flex-wrap: wrap;
   }
-  .hub-home {
-    border-radius: 0.9rem;
-  }
   .app-player-dock {
     padding-inline: 0.3rem;
   }
@@ -1076,7 +1033,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-section-enter, .ambient-vignette-flash, .hub-home::before, .hub-home::after { animation: none; }
+  .animate-section-enter, .ambient-vignette-flash { animation: none; }
   .transition-\[stroke-dashoffset\] { transition: none; }
   *, *::before, *::after { scroll-behavior: auto !important; }
 }

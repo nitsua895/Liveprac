@@ -22,7 +22,6 @@ export function SessionBuilder() {
       <header className="page-header">
         <div>
           <h1 className="page-title">Routines</h1>
-          <p className="page-subtitle mt-1">Build the flow once, then adjust it during a session when needed.</p>
         </div>
         <button
           type="button"

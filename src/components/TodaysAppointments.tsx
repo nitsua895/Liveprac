@@ -77,76 +77,58 @@ export function TodaysAppointments() {
           return (
             <div
               key={event.id}
-              className="surface-card flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+              className="surface-card flex items-center justify-between gap-3 px-4 py-3"
             >
-              {event.htmlLink ? (
-                <a
-                  href={event.htmlLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group min-w-0 flex-1"
-                  title="Open in Google Calendar"
-                >
-                  <p className="flex items-center gap-1.5 truncate text-sm text-neutral-200 group-hover:text-accent-300">
-                    <span className="truncate">{event.summary}</span>
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" className="shrink-0 opacity-50 group-hover:opacity-100" aria-hidden="true">
-                      <path d="M9 6h9v9M18 6 7 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    {event.allDay ? 'All day' : formatTimeRange(event.startMs, event.endMs)}
-                  </p>
-                </a>
-              ) : (
-                <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1">
+                {linkedClient && (
+                  <button
+                    type="button"
+                    onClick={() => setLinkingEventId(event.id)}
+                    className="mb-0.5 block text-xs font-medium text-accent-300 hover:text-accent-200"
+                  >
+                    {linkedClient.name}
+                  </button>
+                )}
+                {event.htmlLink ? (
+                  <a
+                    href={event.htmlLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block min-w-0"
+                    title="Open in Google Calendar"
+                  >
+                    <p className="flex items-center gap-1.5 truncate text-sm text-neutral-200 group-hover:text-accent-300">
+                      <span className="truncate">{event.summary}</span>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" className="shrink-0 opacity-50 group-hover:opacity-100" aria-hidden="true">
+                        <path d="M9 6h9v9M18 6 7 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </p>
+                  </a>
+                ) : (
                   <p className="truncate text-sm text-neutral-200">{event.summary}</p>
-                  <p className="text-xs text-neutral-500">
-                    {event.allDay ? 'All day' : formatTimeRange(event.startMs, event.endMs)}
-                  </p>
-                </div>
-              )}
+                )}
+                <p className="text-xs text-neutral-500">
+                  {event.allDay ? 'All day' : formatTimeRange(event.startMs, event.endMs)}
+                </p>
+              </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-3">
                 {linkedClient ? (
                   <>
-                    <div className="flex flex-col items-end gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="rounded-full border border-accent-500/40 bg-accent-500/10 px-3 py-1 text-xs text-accent-300">
-                          {linkedClient.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setLinkingEventId(event.id)}
-                          className="text-xs text-neutral-600"
-                        >
-                          Change
-                        </button>
-                      </div>
-                      {template && (
-                        <button
-                          type="button"
-                          onClick={() => setPickingRoutineFor(event.id)}
-                          className="text-xs text-neutral-600 hover:text-neutral-400"
-                        >
-                          {template.name} · change routine
-                        </button>
-                      )}
-                    </div>
-                    {template ? (
+                    <button
+                      type="button"
+                      onClick={() => setPickingRoutineFor(event.id)}
+                      className={`text-sm ${template ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'}`}
+                    >
+                      {template ? template.name : 'Choose routine'}
+                    </button>
+                    {template && (
                       <button
                         type="button"
                         onClick={() => beginSession(template.id, linkedClient.id)}
                         className="rounded-full bg-accent-500 px-4 py-1.5 text-sm font-medium text-neutral-950"
                       >
                         Start
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setPickingRoutineFor(event.id)}
-                        className="rounded-full border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
-                      >
-                        Choose routine
                       </button>
                     )}
                   </>

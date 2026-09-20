@@ -34,7 +34,6 @@ export function ClientLog() {
     <div className="page-stack">
       <header>
         <h1 className="page-title">Client Log</h1>
-        <p className="page-subtitle mt-1">Session-to-session history at a glance, plus notes.</p>
       </header>
 
       {clients.length === 0 && (

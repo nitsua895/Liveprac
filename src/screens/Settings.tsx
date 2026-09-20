@@ -167,7 +167,6 @@ export function Settings() {
     <div className="page-stack gap-4">
       <header className="mb-1">
         <h1 className="page-title">Settings</h1>
-        <p className="page-subtitle mt-1">Tune the room experience and connect the services you use.</p>
       </header>
 
       <AccentPicker />
