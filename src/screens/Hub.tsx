@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { NowPlayingBar } from '../components/NowPlayingBar'
 import { RemoteStatusPill } from '../components/RemoteStatusPill'
 import { TodaysAppointments } from '../components/TodaysAppointments'
 import { primeCueAudio } from '../lib/cueSound'
@@ -33,8 +32,6 @@ export function Hub() {
       </header>
 
       <RemoteStatusPill />
-
-      <NowPlayingBar compact />
 
       <TodaysAppointments />
 
