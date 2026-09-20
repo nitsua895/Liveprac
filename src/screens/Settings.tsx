@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as spotify from '../lib/spotify'
 import { exportData, resetAllData } from '../lib/backup'
+import { hexToHsl, hslToHex } from '../lib/color'
 import { getCueSoundMode, previewCueSound, previewTone, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
 import { playSessionEndChime, stopSessionEndChime } from '../lib/chime'
 import {
@@ -131,6 +132,7 @@ function AccentPicker() {
               applyCustomAccent(hue)
               setAccent('custom')
             }}
+            label="Accent hue"
           />
           <p className="text-center text-xs text-neutral-600">
             Rotate to choose a hue — brightness and saturation stay fixed to match the presets.
@@ -292,6 +294,12 @@ const TONE_FOR_TYPE: Record<PreferenceEventType, CueTone> = {
   flagged: 'flag',
 }
 
+// Vivid on purpose — these are meant to catch attention from across a room,
+// unlike the accent theme's muted 36%. Same single-hue-wheel experience,
+// deliberately different fixed saturation/lightness for a different job.
+const CUE_SATURATION = 68
+const CUE_LIGHTNESS = 52
+
 function NotificationCuesCard() {
   const { pushAmbientCue } = useAppState()
   const [labels, setLabels] = useState<Record<PreferenceEventType, string>>(
@@ -300,6 +308,7 @@ function NotificationCuesCard() {
   const [colors, setColors] = useState<Record<CueTone, string>>(
     () => Object.fromEntries(TONES.map((t) => [t, getCueColor(t) ?? DEFAULT_CUE_COLORS[t]])) as Record<CueTone, string>,
   )
+  const [openTone, setOpenTone] = useState<CueTone | null>(null)
 
   function preview(tone: CueTone, message: string) {
     // Visual glow through the real pipeline, plus a guaranteed sound test —
@@ -307,6 +316,12 @@ function NotificationCuesCard() {
     // happens to be off right now.
     pushAmbientCue({ kind: tone === 'next' ? 'timer' : 'preference', tone, message })
     void previewTone(tone)
+  }
+
+  function setToneHue(tone: CueTone, hue: number) {
+    const hex = hslToHex(hue, CUE_SATURATION, CUE_LIGHTNESS)
+    setColors((prev) => ({ ...prev, [tone]: hex }))
+    setCueColor(tone, hex)
   }
 
   return (
@@ -319,18 +334,13 @@ function NotificationCuesCard() {
         {TONES.map((tone) => (
           <div key={tone} className="rounded-xl border border-neutral-800 p-3">
             <div className="flex flex-wrap items-center gap-3">
-              <label className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10" style={{ background: colors[tone] }}>
-                <input
-                  type="color"
-                  value={colors[tone]}
-                  onChange={(e) => {
-                    setColors((prev) => ({ ...prev, [tone]: e.target.value }))
-                    setCueColor(tone, e.target.value)
-                  }}
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  aria-label={`${TONE_LABELS[tone]} color`}
-                />
-              </label>
+              <button
+                type="button"
+                onClick={() => setOpenTone((prev) => (prev === tone ? null : tone))}
+                className="h-8 w-8 shrink-0 rounded-full border border-white/10"
+                style={{ background: colors[tone] }}
+                aria-label={`${TONE_LABELS[tone]} color`}
+              />
               <span className="text-sm text-neutral-300">{TONE_LABELS[tone]}</span>
               {colors[tone] !== DEFAULT_CUE_COLORS[tone] && (
                 <button
@@ -352,6 +362,19 @@ function NotificationCuesCard() {
                 Preview
               </button>
             </div>
+
+            {openTone === tone && (
+              <div className="mt-3 flex flex-col items-center gap-2 border-t border-neutral-800 pt-3">
+                <HueWheel
+                  hue={hexToHsl(colors[tone]).h}
+                  onChange={(hue) => setToneHue(tone, hue)}
+                  size={140}
+                  saturation={CUE_SATURATION}
+                  lightness={CUE_LIGHTNESS}
+                  label={`${TONE_LABELS[tone]} hue`}
+                />
+              </div>
+            )}
 
             {tone === 'next' ? (
               <p className="mt-2 text-xs text-neutral-600">

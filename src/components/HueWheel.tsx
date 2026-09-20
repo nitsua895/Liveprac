@@ -1,20 +1,27 @@
 import { useRef } from 'react'
-import { customAccentPreview } from '../lib/theme'
 
 /**
  * A single-axis picker — rotate around the ring to choose a hue. There's no
  * saturation or lightness control on purpose: those are what turn "any
- * color" into "an ugly, oversaturated color," so the app fixes them and
- * only ever hands over the one knob that's safe to turn freely.
+ * color" into "an ugly, oversaturated color," so the app fixes them (via
+ * `saturation`/`lightness`, set per use — muted for the accent theme, vivid
+ * for notification glows) and only ever hands over the one knob that's safe
+ * to turn freely.
  */
 export function HueWheel({
   hue,
   onChange,
   size = 168,
+  saturation = 36,
+  lightness = 55,
+  label = 'Hue',
 }: {
   hue: number
   onChange: (hue: number) => void
   size?: number
+  saturation?: number
+  lightness?: number
+  label?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -47,7 +54,7 @@ export function HueWheel({
       }}
       onPointerMove={handleMove}
       role="slider"
-      aria-label="Accent hue"
+      aria-label={label}
       aria-valuemin={0}
       aria-valuemax={360}
       aria-valuenow={Math.round(hue)}
@@ -68,7 +75,7 @@ export function HueWheel({
         className="absolute rounded-full"
         style={{
           inset: '20%',
-          background: customAccentPreview(hue),
+          background: `hsl(${hue} ${saturation}% ${lightness}%)`,
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
         }}
       />

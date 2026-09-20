@@ -34,41 +34,61 @@ export async function primeCueAudio() {
   }
 }
 
-function note(ctx: AudioContext, frequency: number, start: number, duration: number, peak = 0.025) {
-  const oscillator = ctx.createOscillator()
-  const gain = ctx.createGain()
-  oscillator.type = 'sine'
-  oscillator.frequency.setValueAtTime(frequency, start)
-  gain.gain.setValueAtTime(0.0001, start)
-  gain.gain.exponentialRampToValueAtTime(peak, start + 0.06)
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-  oscillator.connect(gain).connect(ctx.destination)
-  oscillator.start(start)
-  oscillator.stop(start + duration + 0.02)
+/** A fundamental plus a quiet octave overtone reads as a small bell/chime
+ *  rather than a flat sine blip — closer to a "real" chime timbre without
+ *  needing a recorded sample. */
+function note(ctx: AudioContext, frequency: number, start: number, duration: number, peak: number) {
+  function partial(freq: number, gainScale: number) {
+    const oscillator = ctx.createOscillator()
+    const gain = ctx.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(freq, start)
+    const partialPeak = peak * gainScale
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.exponentialRampToValueAtTime(partialPeak, start + 0.05)
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+    oscillator.connect(gain).connect(ctx.destination)
+    oscillator.start(start)
+    oscillator.stop(start + duration + 0.02)
+  }
+  partial(frequency, 1)
+  partial(frequency * 2, 0.28)
+}
+
+// "Peak" here is calibrated for the volume slider's 100% position — these
+// are meaningfully louder than a bare sine blip precisely because they were
+// too quiet to hear reliably at the old fixed level, independent of whatever
+// the slider was set to (which the old version never actually read).
+const REFERENCE_PEAK: Record<CueTone, number> = {
+  next: 0.16,
+  love: 0.14,
+  flag: 0.13,
+  pressure: 0.13,
 }
 
 /** One gentle default per tone — distinguishable by ear the way the glow
  *  colors are distinguishable by eye, without any of them sounding like an
- *  alarm in a quiet treatment room. */
+ *  alarm in a quiet treatment room. Scales with that tone's Settings volume. */
 function playPattern(tone: CueTone) {
   const ctx = context()
   if (ctx.state !== 'running') return
   const start = ctx.currentTime + 0.025
+  const peak = REFERENCE_PEAK[tone] * Math.min(1, Math.max(0, getVolume(tone) / 100))
 
   if (tone === 'next') {
     // Two low, consonant notes read as a transition.
-    note(ctx, 392, start, 0.48, 0.022)
-    note(ctx, 523.25, start + 0.18, 0.58, 0.018)
+    note(ctx, 392, start, 0.48, peak)
+    note(ctx, 523.25, start + 0.18, 0.58, peak * 0.82)
   } else if (tone === 'love') {
     // A warmer, rising two-note lift for positive feedback.
-    note(ctx, 523.25, start, 0.34, 0.014)
-    note(ctx, 659.25, start + 0.12, 0.42, 0.012)
+    note(ctx, 523.25, start, 0.34, peak)
+    note(ctx, 659.25, start + 0.12, 0.42, peak * 0.86)
   } else if (tone === 'flag') {
     // Lower and single-note — acknowledges without sounding negative.
-    note(ctx, 329.63, start, 0.4, 0.011)
+    note(ctx, 329.63, start, 0.4, peak)
   } else {
     // pressure — a neutral, unobtrusive single blip.
-    note(ctx, 440, start, 0.42, 0.012)
+    note(ctx, 440, start, 0.42, peak)
   }
 }
 

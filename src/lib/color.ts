@@ -31,6 +31,27 @@ export function hexToHsl(hex: string): { h: number; s: number; l: number } {
   return rgbToHsl(r, g, b)
 }
 
+/** Inverse of hexToHsl — used to turn a wheel's plain hue back into the hex
+ *  format the rest of the cue-color storage already speaks. */
+export function hslToHex(h: number, s: number, l: number): string {
+  const sNorm = s / 100
+  const lNorm = l / 100
+  const c = (1 - Math.abs(2 * lNorm - 1)) * sNorm
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = lNorm - c / 2
+  let r = 0
+  let g = 0
+  let b = 0
+  if (h < 60) [r, g, b] = [c, x, 0]
+  else if (h < 120) [r, g, b] = [x, c, 0]
+  else if (h < 180) [r, g, b] = [0, c, x]
+  else if (h < 240) [r, g, b] = [0, x, c]
+  else if (h < 300) [r, g, b] = [x, 0, c]
+  else [r, g, b] = [c, 0, x]
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
 /** rgba() string for a picked hex at a given alpha — used for glow/cue colors. */
 export function hexToRgba(hex: string, alpha: number): string {
   const { r, g, b } = hexToRgb(hex)
