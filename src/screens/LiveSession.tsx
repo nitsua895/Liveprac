@@ -163,7 +163,7 @@ export function LiveSession() {
 
   return (
     <div className="session-page flex flex-col gap-3 sm:gap-5">
-      <header className="flex min-w-0 items-center justify-between gap-3">
+      <header className="session-header flex min-w-0 items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm text-neutral-500 sm:text-base">
           {template.name}
           {client ? ` · ${client.name}` : ''}
@@ -179,7 +179,7 @@ export function LiveSession() {
         key={activeSession.currentSectionIndex}
         className="session-stage grid items-center gap-6"
       >
-        <div className="flex flex-col items-center">
+        <div className="session-dial-column flex flex-col items-center">
           <TimerDial
             sizePx={350}
             remainingFraction={displayedSectionRemainingSec / section.durationSec}
@@ -213,7 +213,7 @@ export function LiveSession() {
               </span>
             </div>
           </TimerDial>
-          <div className="flex h-12 items-center justify-center">
+          <div className={`pressure-slot flex items-center justify-center ${netPressure === 0 ? 'empty' : ''}`}>
             <PressureReadout net={netPressure} />
           </div>
         </div>
@@ -221,17 +221,14 @@ export function LiveSession() {
         {/* Controls live beside the dial: the two used mid-session are big and
             near the timer, the rest are tucked behind "More". */}
         <div className="session-controls flex flex-col items-stretch gap-3">
-          <div
-            className={`mb-2 min-h-24 rounded-xl border border-neutral-800 p-4 transition-opacity duration-700 ${
-              showNext ? 'opacity-100' : 'pointer-events-none opacity-0'
-            }`}
-            aria-hidden={!showNext}
-          >
-            <p className="text-sm text-neutral-400">
-              {activeSession.paused ? 'Paused' : 'Coming up'}
-            </p>
-            <p className="mt-1 text-2xl font-medium text-accent-200">{nextSection?.name ?? 'Finish session'}</p>
-          </div>
+          {showNext && (
+            <div className="up-next-card rounded-xl border border-neutral-800 p-4">
+              <p className="text-sm text-neutral-400">
+                {activeSession.paused ? 'Paused' : 'Coming up'}
+              </p>
+              <p className="mt-1 text-2xl font-medium text-accent-200">{nextSection?.name ?? 'Finish session'}</p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -242,14 +239,14 @@ export function LiveSession() {
               }
             }}
             disabled={Boolean(nextSection) && activeSession.paused}
-            className="rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
+            className="session-next rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
           >
             {nextSection ? 'Next Section' : 'Finish Session'}
           </button>
           <button
             type="button"
             onClick={togglePause}
-            className="rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
+            className="session-pause rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
           >
             {activeSession.paused ? 'Resume' : 'Pause'}
           </button>
@@ -257,7 +254,7 @@ export function LiveSession() {
             type="button"
             onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
             disabled={availableFollowingSec <= 0}
-            className="rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
+            className="session-extend rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
             +2 min from next
           </button>
@@ -265,7 +262,7 @@ export function LiveSession() {
             type="button"
             onClick={() => setShowMore((v) => !v)}
             aria-expanded={showMore}
-            className="text-sm text-neutral-600"
+            className="session-more text-sm text-neutral-600"
           >
             {showMore ? 'Less' : 'More'}
           </button>
