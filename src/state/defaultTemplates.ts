@@ -48,7 +48,25 @@ export function buildDefaultTemplates(): SessionTemplate[] {
         ['Face & Scalp', 4, 'head_scalp'],
       ]),
     },
+    buildEightyMinuteTemplate(),
   ]
+}
+
+export function buildEightyMinuteTemplate(): SessionTemplate {
+  return {
+    id: id('template'),
+    name: '80-Minute Session',
+    createdAt: Date.now(),
+    sections: sections([
+      ['Back', 20, 'back'],
+      ['Shoulders & Neck', 15, 'neck_shoulders'],
+      ['Arms & Hands', 11, 'arms_hands'],
+      ['Legs (Back)', 11, 'legs'],
+      ['Legs (Front)', 11, 'legs'],
+      ['Feet', 6, 'feet'],
+      ['Face & Scalp', 6, 'head_scalp'],
+    ]),
+  }
 }
 
 export function newSectionId(): string {

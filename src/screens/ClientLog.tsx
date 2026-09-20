@@ -4,7 +4,8 @@ import { useAppState } from '../state/AppStateContext'
 import type { PreferenceEvent } from '../types'
 
 export function ClientLog() {
-  const { clients, events, templates, sessionNotes, setSessionNote, setClientDefaultTemplate } = useAppState()
+  const { clients, events, templates, sessionNotes, setSessionNote, setClientLastTemplate, deleteClient } =
+    useAppState()
   const [selectedClientId, setSelectedClientId] = useState<string | null>(clients[0]?.id ?? null)
   const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null)
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null)
@@ -60,19 +61,32 @@ export function ClientLog() {
       {selectedClient && (
         <div className="flex flex-col gap-4">
           <div className="surface-card flex flex-wrap items-center justify-between gap-2 p-4">
-            <span className="text-sm text-neutral-400">Usual routine</span>
-            <select
-              value={selectedClient.defaultTemplateId ?? ''}
-              onChange={(e) => e.target.value && setClientDefaultTemplate(selectedClient.id, e.target.value)}
-              className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
-            >
-              <option value="" disabled>
-                Not set — pick one
-              </option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
+            <span className="text-sm text-neutral-400">Last routine</span>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedClient.lastTemplateId ?? ''}
+                onChange={(e) => e.target.value && setClientLastTemplate(selectedClient.id, e.target.value)}
+                className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
+              >
+                <option value="" disabled>
+                  Not set — pick one
+                </option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm(`Delete ${selectedClient.name} and their entire session history? This can't be undone.`)) return
+                  deleteClient(selectedClient.id)
+                  setSelectedClientId(null)
+                }}
+                className="text-sm text-red-400/80"
+              >
+                Delete client
+              </button>
+            </div>
           </div>
 
           {sessions.length === 0 && (

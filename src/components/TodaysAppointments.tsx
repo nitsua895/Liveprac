@@ -15,7 +15,6 @@ export function TodaysAppointments() {
     calendarLinks,
     linkCalendarEvent,
     unlinkCalendarEvent,
-    setClientDefaultTemplate,
     startSession,
   } = useAppState()
   const navigate = useNavigate()
@@ -72,7 +71,7 @@ export function TodaysAppointments() {
         {appointments.map((event) => {
           const link = calendarLinks.find((l) => l.googleEventId === event.id)
           const linkedClient = link ? clients.find((c) => c.id === link.clientId) : undefined
-          const templateId = link?.templateId ?? linkedClient?.defaultTemplateId
+          const templateId = link?.templateId ?? linkedClient?.lastTemplateId
           const template = templateId ? templates.find((t) => t.id === templateId) : undefined
           return (
             <div
@@ -172,12 +171,11 @@ export function TodaysAppointments() {
           onClose={() => setPickingRoutineFor(null)}
           onPick={(templateId) => {
             const link = calendarLinks.find((l) => l.googleEventId === pickingRoutineFor)
-            // Saved as the client's usual routine, not just this one
-            // appointment — the next appointment with them resolves
-            // automatically too, instead of asking every time. Assigning a
-            // routine is a planning-time action; starting the session is a
-            // separate, deliberate tap for when the client is actually here.
-            if (link) setClientDefaultTemplate(link.clientId, templateId)
+            // Sets this one appointment's routine, not the client's
+            // last-used routine directly — that updates on its own the
+            // moment the session actually starts (see startSession),
+            // which is what should drive future appointments' default.
+            if (link) linkCalendarEvent(link.googleEventId, link.clientId, templateId)
             setPickingRoutineFor(null)
           }}
         />
@@ -280,8 +278,8 @@ function RoutinePickerModal({
         <h3 id="routine-picker-title" className="mb-1 text-lg text-neutral-100">Which routine?</h3>
         <p className="mb-4 truncate text-sm text-neutral-500">{eventSummary}</p>
         <p className="mb-3 text-xs text-neutral-600">
-          Saved as this client's usual routine — future appointments with them resolve automatically
-          without asking again. Starting the session is still a separate step.
+          Sets the routine for this appointment. Future appointments with this client default to
+          whichever routine they most recently ran, until you pick a different one for a specific day.
         </p>
         <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
           {templates.length === 0 && (
@@ -304,7 +302,7 @@ function RoutinePickerModal({
           onClick={() => navigate('/build')}
           className="mt-3 w-full text-center text-sm text-accent-400/80"
         >
-          None of these fit — create a new routine
+          Create a new routine
         </button>
         <button type="button" onClick={onClose} className="mt-2 w-full text-center text-sm text-neutral-500">
           Cancel

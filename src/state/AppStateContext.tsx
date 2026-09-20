@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { loadJSON, saveJSON } from '../lib/storage'
-import { buildDefaultTemplates, newSectionId, newTemplateId } from './defaultTemplates'
+import { buildDefaultTemplates, buildEightyMinuteTemplate, newSectionId, newTemplateId } from './defaultTemplates'
 import type {
   ActiveSession,
   AmbientCue,
@@ -46,7 +46,8 @@ interface AppState {
   saveTemplate: (template: SessionTemplate) => void
   deleteTemplate: (templateId: string) => void
   addClient: (name: string) => ClientProfile
-  setClientDefaultTemplate: (clientId: string, templateId: string) => void
+  setClientLastTemplate: (clientId: string, templateId: string) => void
+  deleteClient: (clientId: string) => void
   startSession: (templateId: string, clientId: string | null) => void
   advanceSection: () => void
   goToPreviousSection: () => void
@@ -92,6 +93,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (templates.length === 0) {
       setTemplates(buildDefaultTemplates())
+      saveJSON('seededEightyMinute', true)
+      return
+    }
+    // One-time top-up for installs that already existed before the
+    // 80-minute default was added — guarded by a flag rather than just
+    // "no 80-Minute Session present" so deleting it on purpose sticks.
+    if (!loadJSON('seededEightyMinute', false)) {
+      setTemplates((prev) => [...prev, buildEightyMinuteTemplate()])
+      saveJSON('seededEightyMinute', true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -125,8 +135,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return client
   }
 
-  function setClientDefaultTemplate(clientId: string, templateId: string) {
-    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, defaultTemplateId: templateId } : c)))
+  function setClientLastTemplate(clientId: string, templateId: string) {
+    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, lastTemplateId: templateId } : c)))
+  }
+
+  function deleteClient(clientId: string) {
+    const orphanedInstanceIds = new Set(
+      events.filter((e) => e.clientId === clientId).map((e) => e.sessionInstanceId),
+    )
+    setClients((prev) => prev.filter((c) => c.id !== clientId))
+    setEvents((prev) => prev.filter((e) => e.clientId !== clientId))
+    setSessionNotes((prev) => prev.filter((n) => !orphanedInstanceIds.has(n.sessionInstanceId)))
+    setCalendarLinks((prev) => prev.filter((l) => l.clientId !== clientId))
   }
 
   function startSession(templateId: string, clientId: string | null) {
@@ -149,6 +169,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       started: false,
     })
     setAmbientCues([])
+    // Whatever routine actually got used — updates every time, since it
+    // commonly changes (50 minutes one week, 30 the next).
+    if (clientId) setClientLastTemplate(clientId, templateId)
   }
 
   function advanceSection() {
@@ -318,7 +341,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       saveTemplate,
       deleteTemplate,
       addClient,
-      setClientDefaultTemplate,
+      setClientLastTemplate,
+      deleteClient,
       startSession,
       advanceSection,
       goToPreviousSection,

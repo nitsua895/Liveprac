@@ -28,8 +28,11 @@ export interface ClientProfile {
   name: string
   notes: string
   createdAt: number
-  /** Their usual routine — resolved automatically when starting from a linked appointment. */
-  defaultTemplateId?: string
+  /** Whatever routine they most recently ran — updates automatically every
+   *  time a session starts for them, since it commonly changes week to week
+   *  (e.g. usually 50 minutes, occasionally 30). Used to resolve a linked
+   *  appointment that has no per-appointment override of its own. */
+  lastTemplateId?: string
 }
 
 export type PreferenceEventType = 'pressure_up' | 'pressure_down' | 'loved' | 'flagged'
@@ -85,7 +88,9 @@ export interface AmbientCue {
 export interface CalendarLink {
   googleEventId: string
   clientId: string
-  /** Overrides the client's default routine for this one appointment only. */
+  /** Overrides the client's last-used routine for this one appointment only —
+   *  set by picking one for this appointment specifically, before it's ever
+   *  started. Once started, the client's lastTemplateId takes over again. */
   templateId?: string
 }
 
