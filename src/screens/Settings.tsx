@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as spotify from '../lib/spotify'
+import { getCueSoundMode, previewCueSound, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
 import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
 import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
 import { GoogleCalendarCard } from '../components/GoogleCalendarCard'
@@ -53,6 +54,49 @@ function AccentPicker() {
               style={{ background: ACCENT_PREVIEW_COLORS[theme.value] }}
             />
             <span className="text-xs text-neutral-400">{theme.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const SOUND_OPTIONS: Array<{ value: CueSoundMode; label: string; detail: string }> = [
+  { value: 'transitions', label: 'Transitions', detail: 'Recommended' },
+  { value: 'off', label: 'Off', detail: 'Visual only' },
+  { value: 'all', label: 'All cues', detail: 'Includes feedback' },
+]
+
+function CueSoundCard() {
+  const [mode, setMode] = useState<CueSoundMode>(() => getCueSoundMode())
+
+  function choose(next: CueSoundMode) {
+    setCueSoundMode(next)
+    setMode(next)
+    if (next !== 'off') void previewCueSound(next)
+  }
+
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+      <p className="mb-1 text-neutral-100">Session cue sound</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        The edge glow always appears. Transitions adds a very quiet two-note cue; client feedback stays private and visual.
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {SOUND_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => choose(option.value)}
+            aria-pressed={mode === option.value}
+            className={`rounded-xl border px-2 py-3 text-center ${
+              mode === option.value
+                ? 'border-accent-400/60 bg-accent-500/10 text-accent-200'
+                : 'border-neutral-800 text-neutral-400'
+            }`}
+          >
+            <span className="block text-sm font-medium">{option.label}</span>
+            <span className="mt-0.5 block text-[11px] text-neutral-600">{option.detail}</span>
           </button>
         ))}
       </div>
@@ -123,6 +167,8 @@ export function Settings() {
       <h1 className="text-2xl font-light text-neutral-200">Settings</h1>
 
       <AccentPicker />
+
+      <CueSoundCard />
 
       <BluetoothRemoteCard />
       <GoogleCalendarCard />
