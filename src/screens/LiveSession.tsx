@@ -137,6 +137,15 @@ export function LiveSession() {
     }
   }, [activeSession?.instanceId])
 
+  // A game controller stands in for the physical dial until real BLE
+  // hardware exists — always listening for the whole session rather than a
+  // manual toggle, since it idles harmlessly (via requestAnimationFrame)
+  // when nothing's connected and just starts working the moment one is.
+  useEffect(() => {
+    if (!activeSession) return
+    return startGamepadBridge()
+  }, [activeSession?.instanceId])
+
   if (!activeSession) {
     navigate('/')
     return null
@@ -442,27 +451,15 @@ function PressureReadout({ net }: { net: number }) {
 /**
  * Stands in for the physical Bluetooth remote until that hardware and its
  * native wrapper exist (see src/lib/remote.ts). Fires the same event shapes
- * a real dial/button would, so this panel can just be deleted later.
+ * a real dial/button would, so this panel can just be deleted later. The
+ * game controller itself is always listening for the whole session (see the
+ * effect above) — this panel is just the manual on-screen fallback plus a
+ * reminder of the controller mapping.
  */
 function RemoteSimulator() {
-  const [gamepadOn, setGamepadOn] = useState(false)
   // Collapsed by default so the session screen fits without scrolling; this
   // whole panel goes away once real hardware exists.
   const [open, setOpen] = useState(false)
-  const stopRef = useRef<(() => void) | null>(null)
-
-  function toggleGamepad() {
-    if (gamepadOn) {
-      stopRef.current?.()
-      stopRef.current = null
-      setGamepadOn(false)
-    } else {
-      stopRef.current = startGamepadBridge()
-      setGamepadOn(true)
-    }
-  }
-
-  useEffect(() => () => stopRef.current?.(), [])
 
   if (!open) {
     return (
@@ -487,18 +484,12 @@ function RemoteSimulator() {
           Remote simulator — hide
         </button>
         {isGamepadSupported() && (
-          <button
-            type="button"
-            onClick={toggleGamepad}
-            className={`rounded-full border px-3 py-1 text-xs ${
-              gamepadOn ? 'border-accent-500/50 text-accent-300' : 'border-neutral-800 text-neutral-500'
-            }`}
-          >
-            {gamepadOn ? 'Game controller: on' : 'Use game controller'}
-          </button>
+          <span className="rounded-full border border-accent-500/50 px-3 py-1 text-xs text-accent-300">
+            Game controller: listening
+          </span>
         )}
       </div>
-      {gamepadOn && (
+      {isGamepadSupported() && (
         <p className="mb-3 text-xs text-neutral-600">
           Left stick up/down = pressure (hold longer for a bigger nudge). Button A/Cross = tap to flag, hold to
           mark loved.
