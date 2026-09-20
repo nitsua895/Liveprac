@@ -146,7 +146,7 @@ export function TodaysAppointments() {
                         onClick={() => setPickingRoutineFor(event.id)}
                         className="rounded-full border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
                       >
-                        Choose routine & start
+                        Choose routine
                       </button>
                     )}
                   </>
@@ -190,13 +190,12 @@ export function TodaysAppointments() {
           onClose={() => setPickingRoutineFor(null)}
           onPick={(templateId) => {
             const link = calendarLinks.find((l) => l.googleEventId === pickingRoutineFor)
-            if (link) {
-              // Saved as the client's usual routine, not just this one
-              // appointment — the next appointment with them resolves
-              // automatically too, instead of asking every time.
-              setClientDefaultTemplate(link.clientId, templateId)
-              beginSession(templateId, link.clientId)
-            }
+            // Saved as the client's usual routine, not just this one
+            // appointment — the next appointment with them resolves
+            // automatically too, instead of asking every time. Assigning a
+            // routine is a planning-time action; starting the session is a
+            // separate, deliberate tap for when the client is actually here.
+            if (link) setClientDefaultTemplate(link.clientId, templateId)
             setPickingRoutineFor(null)
           }}
         />
@@ -297,12 +296,12 @@ function RoutinePickerModal({
         <h3 id="routine-picker-title" className="mb-1 text-lg text-neutral-100">Which routine?</h3>
         <p className="mb-4 truncate text-sm text-neutral-500">{eventSummary}</p>
         <p className="mb-3 text-xs text-neutral-600">
-          Saved as this client's usual routine — future appointments with them start immediately
-          without asking again.
+          Saved as this client's usual routine — future appointments with them resolve automatically
+          without asking again. Starting the session is still a separate step.
         </p>
         <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
           {templates.length === 0 && (
-            <p className="text-sm text-neutral-500">No session templates yet. Create one in Build.</p>
+            <p className="text-sm text-neutral-500">No routines yet. Create one in Build.</p>
           )}
           {templates.map((template) => (
             <button

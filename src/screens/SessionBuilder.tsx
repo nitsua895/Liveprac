@@ -21,7 +21,7 @@ export function SessionBuilder() {
     <div className="page-stack">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Session Templates</h1>
+          <h1 className="page-title">Routines</h1>
           <p className="page-subtitle mt-1">Build the flow once, then adjust it during a session when needed.</p>
         </div>
         <button
@@ -29,7 +29,7 @@ export function SessionBuilder() {
           onClick={() => setEditing(emptyTemplate())}
           className="primary-action shrink-0"
         >
-          New Template
+          New Routine
         </button>
       </header>
 
@@ -55,7 +55,7 @@ export function SessionBuilder() {
               </button>
               <button
                 type="button"
-                onClick={() => { if (window.confirm('Delete this session template?')) deleteTemplate(template.id) }}
+                onClick={() => { if (window.confirm('Delete this routine?')) deleteTemplate(template.id) }}
                 className="rounded-lg border border-red-900/60 px-3 py-1.5 text-sm text-red-400/80"
               >
                 Delete
@@ -65,7 +65,7 @@ export function SessionBuilder() {
         ))}
       </div>
       {templates.length === 0 && (
-        <div className="empty-state">No templates yet. Create one to start shaping your session flow.</div>
+        <div className="empty-state">No routines yet. Create one to start shaping your session flow.</div>
       )}
     </div>
   )
@@ -79,7 +79,7 @@ function TemplateEditor({ template, onDone }: { template: SessionTemplate; onDon
     <div className="page-stack">
       <header>
         <p className="section-label">Session plan</p>
-        <h1 className="page-title mt-1">Edit template</h1>
+        <h1 className="page-title mt-1">Edit routine</h1>
       </header>
       <input
         value={draft.name}
