@@ -63,7 +63,7 @@ export function NowPlayingBar() {
 
   function openFromSurface(event: MouseEvent<HTMLElement>) {
     if ((event.target as HTMLElement).closest('button, a, input, select')) return
-    spotify.openTrack(state.trackUri)
+    spotify.openSpotify()
   }
 
   if (!spotify.isConnected()) {
@@ -96,14 +96,13 @@ export function NowPlayingBar() {
     <section
       className={`spotify-player ${state.trackUri ? 'has-track' : ''}`}
       onClick={openFromSurface}
-      title={state.trackUri ? 'Open this track in Spotify' : undefined}
+      title="Open Spotify"
     >
       <button
         type="button"
         className="spotify-album"
-        onClick={() => spotify.openTrack(state.trackUri)}
-        aria-label="Open current track in Spotify"
-        disabled={!state.trackUri}
+        onClick={spotify.openSpotify}
+        aria-label="Open Spotify"
       >
         {state.albumArtUrl ? <img src={state.albumArtUrl} alt="" /> : <Icon name="music" className="h-5 w-5" />}
       </button>
@@ -111,8 +110,7 @@ export function NowPlayingBar() {
       <div className="spotify-track min-w-0">
         <button
           type="button"
-          onClick={() => spotify.openTrack(state.trackUri)}
-          disabled={!state.trackUri}
+          onClick={spotify.openSpotify}
           className="flex max-w-full items-baseline gap-2 text-left"
         >
           <span className="truncate text-sm font-medium text-neutral-200">{state.trackName ?? 'Nothing playing'}</span>

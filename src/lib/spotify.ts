@@ -360,10 +360,11 @@ function trackId(uri: string | null): string | null {
   return uri.slice('spotify:track:'.length) || null
 }
 
-export function openTrack(uri: string | null) {
-  const id = trackId(uri)
-  if (!id) return
-  window.open(`https://open.spotify.com/track/${encodeURIComponent(id)}`, '_blank', 'noopener,noreferrer')
+export function openSpotify() {
+  // Open the app itself, not a track URL. A track deep link can be interpreted
+  // as a new play request and seek back to zero. Same-window navigation also
+  // avoids leaving an orphaned white popup behind the native Spotify app.
+  window.location.assign('https://open.spotify.com/')
 }
 
 export async function isTrackSaved(uri: string | null): Promise<boolean> {

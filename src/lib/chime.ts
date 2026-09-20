@@ -1,6 +1,6 @@
 /**
- * The session-end sound: one gentle chime. The full-screen completion state
- * remains until acknowledged, so repeating audio would only disturb the room.
+ * The session-end sound is a recorded chime file, not a generated oscillator.
+ * It loops gently until acknowledged so it cannot be missed mid-stroke.
  *
  * Mobile browsers block audio.play() until the page has seen a real user
  * gesture. The live session screen has plenty of taps before a session ever
@@ -9,7 +9,7 @@
  */
 const SRC = `${import.meta.env.BASE_URL}sounds/session-end-chime.mp3`
 const FADE_MS = 3000
-const TARGET_VOLUME = 0.18
+const TARGET_VOLUME = 0.14
 
 let audio: HTMLAudioElement | null = null
 let fadeTimer: ReturnType<typeof setInterval> | null = null
@@ -18,7 +18,7 @@ let primed = false
 function getAudio(): HTMLAudioElement {
   if (!audio) {
     audio = new Audio(SRC)
-    audio.loop = false
+    audio.loop = true
     audio.preload = 'auto'
   }
   return audio
