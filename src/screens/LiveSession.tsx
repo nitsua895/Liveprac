@@ -188,7 +188,7 @@ export function LiveSession() {
     return (
       <div className="session-editor-page flex h-full flex-col gap-4 overflow-y-auto sm:gap-6">
         <header className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-light text-neutral-200">Edit Plan</h1>
+          <h1 className="page-title">Edit Plan</h1>
           <p className="text-sm text-neutral-500">Changes apply to this session only</p>
         </header>
         <SectionListEditor
@@ -256,7 +256,7 @@ export function LiveSession() {
             if (!window.confirm('End this session? Recorded feedback will be kept.')) return
             completeSession()
           }}
-          className="session-end-x flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-900/50 text-red-400/70 transition-colors hover:border-red-500/60 hover:text-red-300"
+          className="session-end-x flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-red-900/50 text-red-400/70 transition-colors hover:border-red-500/60 hover:text-red-300"
         >
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">
             <path d="M5 5l14 14M19 5 5 19" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />

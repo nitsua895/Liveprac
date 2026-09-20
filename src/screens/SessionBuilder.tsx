@@ -18,13 +18,16 @@ export function SessionBuilder() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-light text-neutral-200">Session Templates</h1>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">Session Templates</h1>
+          <p className="page-subtitle mt-1">Build the flow once, then adjust it during a session when needed.</p>
+        </div>
         <button
           type="button"
           onClick={() => setEditing(emptyTemplate())}
-          className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950"
+          className="primary-action shrink-0"
         >
           New Template
         </button>
@@ -34,7 +37,7 @@ export function SessionBuilder() {
         {templates.map((template) => (
           <div
             key={template.id}
-            className="flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4"
+            className="template-card surface-card flex items-center justify-between gap-4 p-4"
           >
             <div>
               <p className="text-neutral-100">{template.name}</p>
@@ -42,7 +45,7 @@ export function SessionBuilder() {
                 {template.sections.length} sections · {Math.round(sessionDurationSec(template.sections) / 60)} min
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="template-card-actions flex gap-2">
               <button
                 type="button"
                 onClick={() => setEditing(template)}
@@ -61,6 +64,9 @@ export function SessionBuilder() {
           </div>
         ))}
       </div>
+      {templates.length === 0 && (
+        <div className="empty-state">No templates yet. Create one to start shaping your session flow.</div>
+      )}
     </div>
   )
 }
@@ -70,7 +76,11 @@ function TemplateEditor({ template, onDone }: { template: SessionTemplate; onDon
   const [draft, setDraft] = useState<SessionTemplate>(template)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="page-stack">
+      <header>
+        <p className="section-label">Session plan</p>
+        <h1 className="page-title mt-1">Edit template</h1>
+      </header>
       <input
         value={draft.name}
         onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
@@ -97,7 +107,7 @@ function TemplateEditor({ template, onDone }: { template: SessionTemplate; onDon
             saveTemplate(draft)
             onDone()
           }}
-          className="rounded-full bg-accent-500 px-5 py-2 text-sm font-medium text-neutral-950"
+          className="primary-action"
         >
           Save
         </button>

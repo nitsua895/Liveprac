@@ -5,7 +5,7 @@ import { useAppState } from '../state/AppStateContext'
 export function ClientLog() {
   const { clients, events, templates } = useAppState()
   const [selectedClientId, setSelectedClientId] = useState<string | null>(clients[0]?.id ?? null)
-  const [copied, setCopied] = useState(false)
+  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null)
 
   const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null
   const clientEvents = selectedClientId ? events.filter((e) => e.clientId === selectedClientId) : []
@@ -25,11 +25,14 @@ export function ClientLog() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-light text-neutral-200">Client Log</h1>
+    <div className="page-stack">
+      <header>
+        <h1 className="page-title">Client Log</h1>
+        <p className="page-subtitle mt-1">A quiet record of the feedback captured during sessions.</p>
+      </header>
 
       {clients.length === 0 && (
-        <p className="text-neutral-500">No clients yet — they're added when you start a session.</p>
+        <p className="empty-state">No clients yet — they're added when you start a session.</p>
       )}
 
       <div className="flex flex-wrap gap-2">
@@ -60,7 +63,7 @@ export function ClientLog() {
               t.sections.some((s) => s.id === first.sectionId),
             )
             return (
-              <div key={instanceId} className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+              <div key={instanceId} className="surface-card p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm text-neutral-500">
                     {new Date(first.timestamp).toLocaleDateString()}
@@ -72,12 +75,12 @@ export function ClientLog() {
                         navigator.clipboard?.writeText(
                           formatSessionSummary(template, selectedClient, sessionEvents),
                         )
-                        setCopied(true)
-                        setTimeout(() => setCopied(false), 2000)
+                        setCopiedSessionId(instanceId)
+                        setTimeout(() => setCopiedSessionId(null), 2000)
                       }}
                       className="text-xs text-accent-400/80"
                     >
-                      {copied ? 'Copied' : 'Copy note for CRM'}
+                      {copiedSessionId === instanceId ? 'Copied' : 'Copy note for CRM'}
                     </button>
                   )}
                 </div>

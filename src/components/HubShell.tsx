@@ -46,15 +46,15 @@ export function HubShell() {
       <AmbientGlow />
       <OrientationControl />
       <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
-        <div className="app-topbar-inner mx-auto flex max-w-6xl items-center px-1 sm:px-5 lg:px-6">
-          <nav hidden={inSession} className="app-nav flex min-w-0 flex-1 justify-around py-2 sm:justify-start sm:gap-2 sm:py-3">
+        <div className={`app-topbar-inner mx-auto flex items-center px-1 sm:px-6 lg:px-8 ${inSession ? 'max-w-6xl' : 'max-w-4xl'}`}>
+          <nav aria-label="Primary" hidden={inSession} className="app-nav flex min-w-0 flex-1 justify-around sm:justify-start sm:gap-2">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `rounded-lg px-3 py-1.5 text-xs transition-colors sm:px-4 sm:text-sm ${
+                  `rounded-lg px-3 text-xs transition-colors sm:px-4 sm:text-sm ${
                     isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
                   }`
                 }
