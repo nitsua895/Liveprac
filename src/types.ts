@@ -28,6 +28,8 @@ export interface ClientProfile {
   name: string
   notes: string
   createdAt: number
+  /** Their usual routine — resolved automatically when starting from a linked appointment. */
+  defaultTemplateId?: string
 }
 
 export type PreferenceEventType = 'pressure_up' | 'pressure_down' | 'loved' | 'flagged'
@@ -57,6 +59,9 @@ export interface ActiveSession {
   sectionStartedAt: number
   paused: boolean
   pausedAt: number | null
+  /** False until the first Resume — sessions start paused for intake/setup
+   *  before the clock runs, distinct from a later mid-session pause. */
+  started: boolean
 }
 
 /** Drives the glow colour, so the kind of alert reads peripherally without being read. */
@@ -80,4 +85,12 @@ export interface AmbientCue {
 export interface CalendarLink {
   googleEventId: string
   clientId: string
+  /** Overrides the client's default routine for this one appointment only. */
+  templateId?: string
+}
+
+/** A therapist's freeform write-up for one past session, added after the fact. */
+export interface SessionNote {
+  sessionInstanceId: string
+  text: string
 }

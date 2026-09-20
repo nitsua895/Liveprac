@@ -330,9 +330,11 @@ export function LiveSession() {
           {showNext && (
             <div className="up-next-card rounded-xl border border-neutral-800 p-4">
               <p className="text-sm text-neutral-400">
-                {activeSession.paused ? 'Paused' : 'Coming up'}
+                {!activeSession.started ? 'Ready when you are' : activeSession.paused ? 'Paused' : 'Coming up'}
               </p>
-              <p className="mt-1 text-2xl font-medium text-accent-200">{nextSection?.name ?? 'Finish session'}</p>
+              <p className="mt-1 text-2xl font-medium text-accent-200">
+                {!activeSession.started ? section.name : (nextSection?.name ?? 'Finish session')}
+              </p>
             </div>
           )}
           <button
@@ -353,7 +355,7 @@ export function LiveSession() {
             onClick={togglePause}
             className="session-pause rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
           >
-            {activeSession.paused ? 'Resume' : 'Pause'}
+            {!activeSession.started ? 'Begin Session' : activeSession.paused ? 'Resume' : 'Pause'}
           </button>
           <button
             type="button"

@@ -11,6 +11,7 @@ import type {
   PreferenceEvent,
   PreferenceEventType,
   SectionTemplate,
+  SessionNote,
   SessionTemplate,
 } from '../types'
 
@@ -40,10 +41,12 @@ interface AppState {
   ambientCues: AmbientCue[]
   cueBump: number
   calendarLinks: CalendarLink[]
+  sessionNotes: SessionNote[]
 
   saveTemplate: (template: SessionTemplate) => void
   deleteTemplate: (templateId: string) => void
   addClient: (name: string) => ClientProfile
+  setClientDefaultTemplate: (clientId: string, templateId: string) => void
   startSession: (templateId: string, clientId: string | null) => void
   advanceSection: () => void
   goToPreviousSection: () => void
@@ -55,8 +58,9 @@ interface AppState {
   dismissAmbientCue: (cueId: string) => void
   pushAmbientCue: (cue: Omit<AmbientCue, 'id' | 'createdAt' | 'count'>) => void
   eventsForSession: (instanceId: string) => PreferenceEvent[]
-  linkCalendarEvent: (googleEventId: string, clientId: string) => void
+  linkCalendarEvent: (googleEventId: string, clientId: string, templateId?: string) => void
   unlinkCalendarEvent: (googleEventId: string) => void
+  setSessionNote: (sessionInstanceId: string, text: string) => void
 }
 
 const AppStateContext = createContext<AppState | null>(null)
@@ -80,6 +84,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [calendarLinks, setCalendarLinks] = useState<CalendarLink[]>(() =>
     loadJSON('calendarLinks', []),
   )
+  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>(() => loadJSON('sessionNotes', []))
   /** Increments on every signal, including repeats folded into an existing cue,
    *  so the glow can re-flash even when no new cue was added. */
   const [cueBump, setCueBump] = useState(0)
@@ -96,6 +101,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveJSON('events', events), [events])
   useEffect(() => saveJSON('activeSession', activeSession), [activeSession])
   useEffect(() => saveJSON('calendarLinks', calendarLinks), [calendarLinks])
+  useEffect(() => saveJSON('sessionNotes', sessionNotes), [sessionNotes])
 
   function saveTemplate(template: SessionTemplate) {
     setTemplates((prev) => {
@@ -119,6 +125,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return client
   }
 
+  function setClientDefaultTemplate(clientId: string, templateId: string) {
+    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, defaultTemplateId: templateId } : c)))
+  }
+
   function startSession(templateId: string, clientId: string | null) {
     const template = templates.find((t) => t.id === templateId)
     if (!template) return
@@ -132,8 +142,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       plannedDurationSec: template.sections.reduce((sum, section) => sum + section.durationSec, 0),
       currentSectionIndex: 0,
       sectionStartedAt: now,
-      paused: false,
-      pausedAt: null,
+      // Starts paused: intake/settling-in shouldn't silently eat into the
+      // first section's time. The clock only starts once she hits Resume.
+      paused: true,
+      pausedAt: now,
+      started: false,
     })
     setAmbientCues([])
   }
@@ -205,6 +218,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           sections: result.sections,
           paused: false,
           pausedAt: null,
+          started: true,
           sectionStartedAt: prev.sectionStartedAt + pausedMs,
         }
       }
@@ -273,15 +287,22 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return events.filter((e) => e.sessionInstanceId === instanceId)
   }
 
-  function linkCalendarEvent(googleEventId: string, clientId: string) {
+  function linkCalendarEvent(googleEventId: string, clientId: string, templateId?: string) {
     setCalendarLinks((prev) => [
       ...prev.filter((link) => link.googleEventId !== googleEventId),
-      { googleEventId, clientId },
+      { googleEventId, clientId, templateId },
     ])
   }
 
   function unlinkCalendarEvent(googleEventId: string) {
     setCalendarLinks((prev) => prev.filter((link) => link.googleEventId !== googleEventId))
+  }
+
+  function setSessionNote(sessionInstanceId: string, text: string) {
+    setSessionNotes((prev) => {
+      const rest = prev.filter((n) => n.sessionInstanceId !== sessionInstanceId)
+      return text.trim() ? [...rest, { sessionInstanceId, text }] : rest
+    })
   }
 
   const value = useMemo<AppState>(
@@ -293,9 +314,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       ambientCues,
       cueBump,
       calendarLinks,
+      sessionNotes,
       saveTemplate,
       deleteTemplate,
       addClient,
+      setClientDefaultTemplate,
       startSession,
       advanceSection,
       goToPreviousSection,
@@ -309,8 +332,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       eventsForSession,
       linkCalendarEvent,
       unlinkCalendarEvent,
+      setSessionNote,
     }),
-    [templates, clients, events, activeSession, ambientCues, cueBump, calendarLinks],
+    [templates, clients, events, activeSession, ambientCues, cueBump, calendarLinks, sessionNotes],
   )
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

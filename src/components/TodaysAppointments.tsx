@@ -1,16 +1,29 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as googleCalendar from '../lib/googleCalendar'
 import type { CalendarEvent } from '../lib/googleCalendar'
 import { useAppState } from '../state/AppStateContext'
+import type { SessionTemplate } from '../types'
 
 const REFRESH_MS = 5 * 60 * 1000
 
 export function TodaysAppointments() {
-  const { clients, addClient, calendarLinks, linkCalendarEvent, unlinkCalendarEvent } = useAppState()
+  const {
+    clients,
+    templates,
+    addClient,
+    calendarLinks,
+    linkCalendarEvent,
+    unlinkCalendarEvent,
+    setClientDefaultTemplate,
+    startSession,
+  } = useAppState()
+  const navigate = useNavigate()
   const [connected, setConnected] = useState(() => googleCalendar.isConnected())
   const [appointments, setAppointments] = useState<CalendarEvent[]>([])
   const [error, setError] = useState<string | null>(null)
   const [linkingEventId, setLinkingEventId] = useState<string | null>(null)
+  const [pickingRoutineFor, setPickingRoutineFor] = useState<string | null>(null)
 
   useEffect(() => {
     if (!connected) return
@@ -41,6 +54,11 @@ export function TodaysAppointments() {
 
   if (!connected) return null
 
+  function beginSession(templateId: string, clientId: string | null) {
+    startSession(templateId, clientId)
+    navigate('/session')
+  }
+
   return (
     <section className="flex flex-col gap-3">
       <h2 className="section-label">
@@ -54,6 +72,8 @@ export function TodaysAppointments() {
         {appointments.map((event) => {
           const link = calendarLinks.find((l) => l.googleEventId === event.id)
           const linkedClient = link ? clients.find((c) => c.id === link.clientId) : undefined
+          const templateId = link?.templateId ?? linkedClient?.defaultTemplateId
+          const template = templateId ? templates.find((t) => t.id === templateId) : undefined
           return (
             <div
               key={event.id}
@@ -85,28 +105,61 @@ export function TodaysAppointments() {
                   </p>
                 </div>
               )}
-              {linkedClient ? (
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-accent-500/40 bg-accent-500/10 px-3 py-1 text-xs text-accent-300">
-                    {linkedClient.name}
-                  </span>
+
+              <div className="flex items-center gap-2">
+                {linkedClient ? (
+                  <>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-full border border-accent-500/40 bg-accent-500/10 px-3 py-1 text-xs text-accent-300">
+                          {linkedClient.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setLinkingEventId(event.id)}
+                          className="text-xs text-neutral-600"
+                        >
+                          Change
+                        </button>
+                      </div>
+                      {template && (
+                        <button
+                          type="button"
+                          onClick={() => setPickingRoutineFor(event.id)}
+                          className="text-xs text-neutral-600 hover:text-neutral-400"
+                        >
+                          {template.name} · change routine
+                        </button>
+                      )}
+                    </div>
+                    {template ? (
+                      <button
+                        type="button"
+                        onClick={() => beginSession(template.id, linkedClient.id)}
+                        className="rounded-full bg-accent-500 px-4 py-1.5 text-sm font-medium text-neutral-950"
+                      >
+                        Start
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPickingRoutineFor(event.id)}
+                        className="rounded-full border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
+                      >
+                        Choose routine & start
+                      </button>
+                    )}
+                  </>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setLinkingEventId(event.id)}
-                    className="text-xs text-neutral-600"
+                    className="rounded-full border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
                   >
-                    Change
+                    Link to client
                   </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setLinkingEventId(event.id)}
-                  className="rounded-full border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
-                >
-                  Link to client
-                </button>
-              )}
+                )}
+              </div>
             </div>
           )
         })}
@@ -127,6 +180,25 @@ export function TodaysAppointments() {
           }}
           onAddClient={(name) => addClient(name)}
           onClose={() => setLinkingEventId(null)}
+        />
+      )}
+
+      {pickingRoutineFor && (
+        <RoutinePickerModal
+          eventSummary={appointments.find((e) => e.id === pickingRoutineFor)?.summary ?? ''}
+          templates={templates}
+          onClose={() => setPickingRoutineFor(null)}
+          onPick={(templateId) => {
+            const link = calendarLinks.find((l) => l.googleEventId === pickingRoutineFor)
+            if (link) {
+              // Saved as the client's usual routine, not just this one
+              // appointment — the next appointment with them resolves
+              // automatically too, instead of asking every time.
+              setClientDefaultTemplate(link.clientId, templateId)
+              beginSession(templateId, link.clientId)
+            }
+            setPickingRoutineFor(null)
+          }}
         />
       )}
     </section>
@@ -203,6 +275,50 @@ function LinkClientModal({
             Cancel
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function RoutinePickerModal({
+  eventSummary,
+  templates,
+  onPick,
+  onClose,
+}: {
+  eventSummary: string
+  templates: SessionTemplate[]
+  onPick: (templateId: string) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="routine-picker-title">
+        <h3 id="routine-picker-title" className="mb-1 text-lg text-neutral-100">Which routine?</h3>
+        <p className="mb-4 truncate text-sm text-neutral-500">{eventSummary}</p>
+        <p className="mb-3 text-xs text-neutral-600">
+          Saved as this client's usual routine — future appointments with them start immediately
+          without asking again.
+        </p>
+        <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
+          {templates.length === 0 && (
+            <p className="text-sm text-neutral-500">No session templates yet. Create one in Build.</p>
+          )}
+          {templates.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => onPick(template.id)}
+              className="rounded-lg border border-neutral-800 px-4 py-3 text-left text-neutral-300 hover:border-accent-500/40"
+            >
+              <p className="text-neutral-100">{template.name}</p>
+              <p className="mt-0.5 text-xs text-neutral-500">{template.sections.length} sections</p>
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={onClose} className="mt-4 w-full text-center text-sm text-neutral-500">
+          Cancel
+        </button>
       </div>
     </div>
   )
