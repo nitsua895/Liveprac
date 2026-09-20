@@ -1,11 +1,19 @@
 /**
  * Google Calendar, read-only.
  *
- * Same shape as spotify.ts: PKCE authorization-code flow, no backend, no
- * client secret — the code_verifier proves this request came from the same
- * app that started it, which is what a secret would otherwise be for. The
- * Client ID itself isn't sensitive (it just names the app to Google), so
- * it's safe to hardcode like Spotify's.
+ * PKCE authorization-code flow, same shape as spotify.ts — except unlike
+ * Spotify, Google's token endpoint rejects a "Web application" OAuth
+ * client's code exchange without its client_secret, even with a valid PKCE
+ * verifier. Google only treats Desktop/Android/iOS/TV client types as truly
+ * public, and those can't use an arbitrary HTTPS redirect URI the way this
+ * static site needs.
+ *
+ * So the two calls that need the secret (the code exchange and the refresh)
+ * go through a tiny Netlify Function (netlify/functions/google-token.js)
+ * instead of hitting Google directly — the secret lives only in a Netlify
+ * environment variable there, never in this bundle. The Client ID itself
+ * was never sensitive either way — it's sent straight to Google below when
+ * starting the login redirect, same as it's sent to any OAuth provider.
  *
  * Scope is calendar.readonly: Liveprac only ever reads events. Which client
  * profile an appointment belongs to is decided here, by hand, and stored
@@ -13,7 +21,7 @@
  */
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
-const TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const TOKEN_PROXY_URL = '/.netlify/functions/google-token'
 const API = 'https://www.googleapis.com/calendar/v3'
 const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
 const CLIENT_ID = '1002157149576-4cfstr7eufmrdokvofm4989cmp0r4go7.apps.googleusercontent.com'
@@ -93,6 +101,16 @@ function base64url(buffer: ArrayBuffer): string {
     .replace(/=+$/, '')
 }
 
+/** Pulls Google's actual reason out of a failed response instead of guessing. */
+async function describeError(res: Response): Promise<string> {
+  try {
+    const json = await res.json()
+    return json.error_description || json.error || `HTTP ${res.status}`
+  } catch {
+    return `HTTP ${res.status}`
+  }
+}
+
 export async function beginAuth(): Promise<void> {
   const state = randomString(24)
   write(KEYS.state, state)
@@ -132,18 +150,17 @@ export async function completeAuthFromUrl(): Promise<boolean> {
   if (!verifier) throw new Error('Google connection expired. Please try Connect again.')
 
   const body = new URLSearchParams({
-    client_id: CLIENT_ID,
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri(),
     code_verifier: verifier,
   })
-  const res = await fetch(TOKEN_URL, {
+  const res = await fetch(TOKEN_PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   })
-  if (!res.ok) throw new Error('Google could not finish connecting. Please try Connect again.')
+  if (!res.ok) throw new Error(`Google could not finish connecting (${await describeError(res)}).`)
   const json = await res.json()
   write(
     KEYS.token,
@@ -167,11 +184,10 @@ async function freshAccessToken(): Promise<string | null> {
     return null
   }
 
-  const res = await fetch(TOKEN_URL, {
+  const res = await fetch(TOKEN_PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: CLIENT_ID,
       grant_type: 'refresh_token',
       refresh_token: token.refreshToken,
     }),
@@ -214,7 +230,7 @@ export async function fetchTodayEvents(): Promise<CalendarEvent[]> {
   })
   if (!res.ok) {
     if (res.status === 401) disconnect()
-    throw new Error('Could not load calendar events. Check your connection and try again.')
+    throw new Error(`Could not load calendar events (${await describeError(res)}).`)
   }
   const json = await res.json()
   const items = (json.items ?? []) as Array<{
