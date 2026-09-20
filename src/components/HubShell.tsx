@@ -4,6 +4,7 @@ import { AmbientGlow } from './AmbientGlow'
 import { AppClock } from './AppClock'
 import { NowPlayingBar } from './NowPlayingBar'
 import { OrientationControl } from './OrientationControl'
+import { isVisible } from '../lib/visibility'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Home', end: true },
@@ -84,9 +85,11 @@ export function HubShell() {
       >
         <Outlet />
       </main>
-      <footer className="app-player-dock">
-        <NowPlayingBar />
-      </footer>
+      {isVisible('spotifyBar') && (
+        <footer className="app-player-dock">
+          <NowPlayingBar />
+        </footer>
+      )}
     </div>
   )
 }

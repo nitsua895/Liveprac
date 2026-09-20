@@ -16,7 +16,7 @@ applyAccent(getStoredAccent())
 // Unlocks audio playback on the first tap anywhere, so the session-end chime
 // isn't silently blocked by mobile autoplay restrictions hours later.
 document.addEventListener('pointerdown', () => {
-  primeChime()
+  void primeChime()
   void primeCueAudio()
 }, { once: true })
 // Translates raw BLE notifications into remote-control events app-wide, not

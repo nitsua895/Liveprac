@@ -1,4 +1,7 @@
 import { useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
+import { getCueColor } from '../lib/cueLabels'
+import { deriveCueVars } from '../lib/color'
 import { playCueSound } from '../lib/cueSound'
 import { useAppState } from '../state/AppStateContext'
 
@@ -31,9 +34,11 @@ export function AmbientGlow() {
   }, [current])
 
   if (!current) return null
+  const customHex = getCueColor(current.tone)
+  const customVars = customHex ? (deriveCueVars(customHex) as CSSProperties) : undefined
   return (
     <div key={`${current.id}:${current.createdAt}:${current.count}`}
-      className="cue-hold pointer-events-none fixed inset-0 z-40" data-tone={current.tone}>
+      className="cue-hold pointer-events-none fixed inset-0 z-40" data-tone={current.tone} style={customVars}>
       <div className="cue-glow ambient-vignette absolute inset-0" />
       <div className="ambient-vignette-flash absolute inset-0" />
       <div className="cue-banner" role="status" aria-live="polite" aria-atomic="true">

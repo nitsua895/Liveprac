@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { loadJSON, saveJSON } from '../lib/storage'
+import { getCueLabel } from '../lib/cueLabels'
 import { buildDefaultTemplates, buildEightyMinuteTemplate, newSectionId, newTemplateId } from './defaultTemplates'
 import type {
   ActiveSession,
@@ -295,15 +296,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     setEvents((prev) => [...prev, event])
 
-    // Kept short on purpose — these are read at a glance from across the
-    // table, not studied.
-    const cues: Record<PreferenceEventType, { message: string; tone: CueTone }> = {
-      pressure_up: { message: 'More pressure', tone: 'pressure' },
-      pressure_down: { message: 'Less pressure', tone: 'pressure' },
-      loved: { message: 'Loved this', tone: 'love' },
-      flagged: { message: 'Not a fan', tone: 'flag' },
+    // Tone is fixed per signal (drives the glow color); the message text is
+    // customizable in Settings and kept short on purpose — read at a glance
+    // from across the table, not studied.
+    const tones: Record<PreferenceEventType, CueTone> = {
+      pressure_up: 'pressure',
+      pressure_down: 'pressure',
+      loved: 'love',
+      flagged: 'flag',
     }
-    pushAmbientCue({ kind: 'preference', ...cues[type] })
+    pushAmbientCue({ kind: 'preference', tone: tones[type], message: getCueLabel(type) })
   }
 
   function eventsForSession(instanceId: string) {

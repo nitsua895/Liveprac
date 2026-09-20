@@ -4,6 +4,7 @@ import { RemoteStatusPill } from '../components/RemoteStatusPill'
 import { TodaysAppointments } from '../components/TodaysAppointments'
 import { primeCueAudio } from '../lib/cueSound'
 import { sessionDurationSec } from '../lib/time'
+import { isVisible } from '../lib/visibility'
 import { useAppState } from '../state/AppStateContext'
 
 export function Hub() {
@@ -25,9 +26,9 @@ export function Hub() {
 
   return (
     <div className="page-stack">
-      <RemoteStatusPill />
+      {isVisible('remoteStatus') && <RemoteStatusPill />}
 
-      <TodaysAppointments />
+      {isVisible('appointments') && <TodaysAppointments />}
 
       <section className="flex flex-col gap-3">
         <h2 className="section-label">Start a session</h2>

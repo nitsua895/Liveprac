@@ -1,4 +1,5 @@
 import type { AmbientCue } from '../types'
+import { getCustomSoundUrl, getVolume, hasCustomSound } from './soundSlots'
 
 export type CueSoundMode = 'off' | 'transitions' | 'all'
 
@@ -61,14 +62,42 @@ function playPattern(kind: AmbientCue['kind']) {
   }
 }
 
+async function playCustomTone(tone: AmbientCue['tone']): Promise<void> {
+  const url = await getCustomSoundUrl(tone)
+  if (!url) return
+  const audio = new Audio(url)
+  audio.volume = Math.min(1, Math.max(0, getVolume(tone) / 100))
+  await audio.play()
+}
+
 export function playCueSound(cue: AmbientCue) {
   const mode = getCueSoundMode()
   if (mode === 'off' || (mode === 'transitions' && cue.kind !== 'timer')) return
+  if (hasCustomSound(cue.tone)) {
+    void playCustomTone(cue.tone).catch(() => {
+      // Fall back silently — the visual glow is the primary signal either way.
+    })
+    return
+  }
   try {
     playPattern(cue.kind)
   } catch {
     // Keep every visual cue working if the browser suspends Web Audio.
   }
+}
+
+/** Plays whatever this tone is currently configured to use — its uploaded
+ *  sound if any, otherwise the built-in pattern — ignoring the on/off mode.
+ *  Used by the Settings preview buttons so testing a sound always works,
+ *  even while cue sound is set to Off. */
+export async function previewTone(tone: AmbientCue['tone']): Promise<void> {
+  if (hasCustomSound(tone)) {
+    await playCustomTone(tone).catch(() => {})
+    return
+  }
+  const ctx = context()
+  if (ctx.state === 'suspended') await ctx.resume()
+  playPattern(tone === 'next' ? 'timer' : 'preference')
 }
 
 export async function previewCueSound(mode: CueSoundMode) {

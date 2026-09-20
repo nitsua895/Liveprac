@@ -1,11 +1,44 @@
 import { useState } from 'react'
 import * as spotify from '../lib/spotify'
 import { exportData, resetAllData } from '../lib/backup'
-import { getCueSoundMode, previewCueSound, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
-import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
+import { getCueSoundMode, previewCueSound, previewTone, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
+import { playSessionEndChime, stopSessionEndChime } from '../lib/chime'
+import {
+  SOUND_SLOTS,
+  SOUND_SLOT_LABELS,
+  clearCustomSound,
+  getVolume,
+  hasCustomSound,
+  setCustomSound,
+  setVolume,
+  type SoundSlot,
+} from '../lib/soundSlots'
+import {
+  DEFAULT_CUE_COLORS,
+  DEFAULT_CUE_LABELS,
+  TONE_LABELS,
+  getCueColor,
+  getCueLabel,
+  resetCueColor,
+  resetCueLabel,
+  setCueColor,
+  setCueLabel,
+} from '../lib/cueLabels'
+import {
+  ACCENT_PREVIEW_COLORS,
+  ACCENT_THEMES,
+  applyAccent,
+  applyCustomAccent,
+  getCustomAccentHex,
+  getStoredAccent,
+  type AccentTheme,
+} from '../lib/theme'
+import { VISIBILITY_KEYS, VISIBILITY_LABELS, isVisible, setVisible, type VisibilityKey } from '../lib/visibility'
 import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
 import { GameControllerCard } from '../components/GameControllerCard'
 import { GoogleCalendarCard } from '../components/GoogleCalendarCard'
+import { useAppState } from '../state/AppStateContext'
+import type { CueTone, PreferenceEventType } from '../types'
 
 function IntegrationCard({
   title,
@@ -31,6 +64,7 @@ function IntegrationCard({
 
 function AccentPicker() {
   const [accent, setAccent] = useState<AccentTheme>(() => getStoredAccent())
+  const [customHex, setCustomHex] = useState(() => getCustomAccentHex() ?? '#7c5cbf')
 
   return (
     <div className="surface-card p-5">
@@ -58,7 +92,31 @@ function AccentPicker() {
             <span className="text-xs text-neutral-400">{theme.label}</span>
           </button>
         ))}
+
+        <label
+          className={`relative flex flex-col items-center gap-2 rounded-xl border px-3 py-3 ${
+            accent === 'custom' ? 'border-accent-400/60 bg-accent-500/10' : 'border-neutral-800'
+          }`}
+        >
+          <span className="h-8 w-8 rounded-full border border-white/10" style={{ background: customHex }} />
+          <span className="text-xs text-neutral-400">Custom…</span>
+          <input
+            type="color"
+            value={customHex}
+            onChange={(e) => {
+              setCustomHex(e.target.value)
+              applyCustomAccent(e.target.value)
+              setAccent('custom')
+            }}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            aria-label="Pick a custom accent color"
+          />
+        </label>
       </div>
+      <p className="mt-3 text-xs text-neutral-600">
+        A custom color keeps its hue but is toned down to the same muted brightness as the presets —
+        full saturation reads as glare a few feet from someone's face in a dim room.
+      </p>
     </div>
   )
 }
@@ -100,6 +158,214 @@ function CueSoundCard() {
             <span className="block text-sm font-medium">{option.label}</span>
             <span className="mt-0.5 block text-[11px] text-neutral-600">{option.detail}</span>
           </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SoundRow({ slot }: { slot: SoundSlot }) {
+  const [volume, setVolumeState] = useState(() => getVolume(slot))
+  const [custom, setCustom] = useState(() => hasCustomSound(slot))
+  const [uploading, setUploading] = useState(false)
+
+  function play() {
+    if (slot === 'sessionEnd') {
+      void playSessionEndChime()
+      setTimeout(stopSessionEndChime, 4000)
+    } else {
+      void previewTone(slot)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-800 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-3">
+        <span className="text-sm text-neutral-300">{SOUND_SLOT_LABELS[slot]}</span>
+        {custom && <span className="text-xs text-accent-300">Custom sound</span>}
+        <button
+          type="button"
+          onClick={play}
+          className="ml-auto rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300"
+        >
+          Preview
+        </button>
+      </div>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={volume}
+          onChange={(e) => {
+            const next = Number(e.target.value)
+            setVolumeState(next)
+            setVolume(slot, next)
+          }}
+          className="flex-1"
+          aria-label={`${SOUND_SLOT_LABELS[slot]} volume`}
+        />
+        <span className="w-10 text-right text-xs tabular-nums text-neutral-500">{volume}%</span>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <label className="text-xs text-accent-400/80 hover:text-accent-300">
+          {uploading ? 'Uploading…' : custom ? 'Replace sound' : 'Upload sound'}
+          <input
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            disabled={uploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (!file) return
+              setUploading(true)
+              try {
+                await setCustomSound(slot, file)
+                setCustom(true)
+              } finally {
+                setUploading(false)
+              }
+            }}
+          />
+        </label>
+        {custom && (
+          <button
+            type="button"
+            onClick={async () => {
+              await clearCustomSound(slot)
+              setCustom(false)
+            }}
+            className="text-xs text-neutral-600"
+          >
+            Reset to default
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SoundsCard() {
+  return (
+    <div className="surface-card p-5">
+      <p className="mb-1 text-neutral-100">Sounds</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        Swap in your own MP3 or WAV per cue, and set its volume independently. Preview plays it at
+        that exact volume right now, regardless of the cue-sound mode above.
+      </p>
+      <div className="flex flex-col gap-3">
+        {SOUND_SLOTS.map((slot) => (
+          <SoundRow key={slot} slot={slot} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const PREFERENCE_TYPES: PreferenceEventType[] = ['pressure_up', 'pressure_down', 'loved', 'flagged']
+const TONES: CueTone[] = ['pressure', 'love', 'flag', 'next']
+const TONE_FOR_TYPE: Record<PreferenceEventType, CueTone> = {
+  pressure_up: 'pressure',
+  pressure_down: 'pressure',
+  loved: 'love',
+  flagged: 'flag',
+}
+
+function NotificationCuesCard() {
+  const { pushAmbientCue } = useAppState()
+  const [labels, setLabels] = useState<Record<PreferenceEventType, string>>(
+    () => Object.fromEntries(PREFERENCE_TYPES.map((t) => [t, getCueLabel(t)])) as Record<PreferenceEventType, string>,
+  )
+  const [colors, setColors] = useState<Record<CueTone, string>>(
+    () => Object.fromEntries(TONES.map((t) => [t, getCueColor(t) ?? DEFAULT_CUE_COLORS[t]])) as Record<CueTone, string>,
+  )
+
+  function preview(tone: CueTone, message: string) {
+    // Visual glow through the real pipeline, plus a guaranteed sound test —
+    // testing a sound shouldn't silently no-op just because cue sound mode
+    // happens to be off right now.
+    pushAmbientCue({ kind: tone === 'next' ? 'timer' : 'preference', tone, message })
+    void previewTone(tone)
+  }
+
+  return (
+    <div className="surface-card p-5">
+      <p className="mb-1 text-neutral-100">Notification Cues</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        Each glow's color and wording — Preview shows (and sounds) it exactly as it appears mid-session.
+      </p>
+      <div className="flex flex-col gap-3">
+        {TONES.map((tone) => (
+          <div key={tone} className="rounded-xl border border-neutral-800 p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10" style={{ background: colors[tone] }}>
+                <input
+                  type="color"
+                  value={colors[tone]}
+                  onChange={(e) => {
+                    setColors((prev) => ({ ...prev, [tone]: e.target.value }))
+                    setCueColor(tone, e.target.value)
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label={`${TONE_LABELS[tone]} color`}
+                />
+              </label>
+              <span className="text-sm text-neutral-300">{TONE_LABELS[tone]}</span>
+              {colors[tone] !== DEFAULT_CUE_COLORS[tone] && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetCueColor(tone)
+                    setColors((prev) => ({ ...prev, [tone]: DEFAULT_CUE_COLORS[tone] }))
+                  }}
+                  className="text-xs text-neutral-600"
+                >
+                  Reset color
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => preview(tone, tone === 'next' ? 'Coming up: next section' : labels[PREFERENCE_TYPES.find((t) => TONE_FOR_TYPE[t] === tone)!])}
+                className="ml-auto rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300"
+              >
+                Preview
+              </button>
+            </div>
+
+            {tone === 'next' ? (
+              <p className="mt-2 text-xs text-neutral-600">
+                Section-change wording includes the section name, so only the color is customizable here.
+              </p>
+            ) : (
+              <div className="mt-3 flex flex-col gap-2">
+                {PREFERENCE_TYPES.filter((type) => TONE_FOR_TYPE[type] === tone).map((type) => (
+                  <div key={type} className="flex items-center gap-2">
+                    <input
+                      value={labels[type]}
+                      onChange={(e) => {
+                        setLabels((prev) => ({ ...prev, [type]: e.target.value }))
+                        setCueLabel(type, e.target.value)
+                      }}
+                      className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
+                    />
+                    {labels[type] !== DEFAULT_CUE_LABELS[type] && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetCueLabel(type)
+                          setLabels((prev) => ({ ...prev, [type]: DEFAULT_CUE_LABELS[type] }))
+                        }}
+                        className="text-xs text-neutral-600"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>
@@ -159,6 +425,44 @@ function SpotifyCard() {
         <code className="mt-2 block break-all text-accent-200">{spotify.redirectUri()}</code>
         <p className="mt-2">Preview URLs need their own registered redirect. Use the production site to connect your production account.</p>
       </details>
+    </div>
+  )
+}
+
+function HomeScreenCard() {
+  const [visibility, setVisibility] = useState<Record<VisibilityKey, boolean>>(
+    () => Object.fromEntries(VISIBILITY_KEYS.map((k) => [k, isVisible(k)])) as Record<VisibilityKey, boolean>,
+  )
+
+  return (
+    <div className="surface-card p-5">
+      <p className="mb-1 text-neutral-100">Home Screen</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        Hide whatever you don't use — nothing here deletes data or disconnects anything, it just
+        stops showing up.
+      </p>
+      <div className="flex flex-col gap-2">
+        {VISIBILITY_KEYS.map((key) => (
+          <label
+            key={key}
+            className="flex items-center justify-between gap-3 rounded-lg border border-neutral-800 px-3 py-2.5"
+          >
+            <span>
+              <span className="block text-sm text-neutral-200">{VISIBILITY_LABELS[key].label}</span>
+              <span className="block text-xs text-neutral-600">{VISIBILITY_LABELS[key].detail}</span>
+            </span>
+            <input
+              type="checkbox"
+              checked={visibility[key]}
+              onChange={(e) => {
+                setVisible(key, e.target.checked)
+                setVisibility((prev) => ({ ...prev, [key]: e.target.checked }))
+              }}
+              className="h-5 w-5 accent-accent-500"
+            />
+          </label>
+        ))}
+      </div>
     </div>
   )
 }
@@ -228,7 +532,11 @@ export function Settings() {
 
       <AccentPicker />
 
+      <NotificationCuesCard />
+
       <CueSoundCard />
+
+      <SoundsCard />
 
       <BluetoothRemoteCard />
       <GameControllerCard />
@@ -239,6 +547,8 @@ export function Settings() {
         status="No public API"
         detail="Neither tool exposes a public integration API. Use 'Copy note for CRM' in the Client Log to paste session summaries into their notes field by hand."
       />
+
+      <HomeScreenCard />
 
       <DataCard />
 
