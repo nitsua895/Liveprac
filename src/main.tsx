@@ -6,8 +6,18 @@ import './index.css'
 import { AppStateProvider } from './state/AppStateContext'
 import { applyAccent, getStoredAccent } from './lib/theme'
 import { completeAuthFromUrl } from './lib/spotify'
+import { bluetoothRemote } from './lib/bluetoothRemote'
+import { startBleDispatch } from './lib/bleMapping'
 
 applyAccent(getStoredAccent())
+// Translates raw BLE notifications into remote-control events app-wide, not
+// just while the live session screen is mounted — the connection is meant
+// to hold across an entire shift, not just one open tab of the app.
+startBleDispatch()
+// Fire-and-forget: reconnects to a previously-paired remote without asking
+// again, if the browser still remembers it. Never blocks first paint.
+void bluetoothRemote.tryAutoReconnect()
+
 // Spotify sends the browser back here with ?code=…; swap it for a token.
 async function boot() {
   try {

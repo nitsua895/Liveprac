@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as spotify from '../lib/spotify'
 import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
+import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
 
 function IntegrationCard({
   title,
@@ -122,11 +123,7 @@ export function Settings() {
 
       <AccentPicker />
 
-      <IntegrationCard
-        title="Bluetooth Remote"
-        status="Phase 2"
-        detail="iOS Safari can't talk to Bluetooth hardware directly. Pairing needs this app wrapped in a native shell (Capacitor + BLE plugin) once the dial/button hardware is picked."
-      />
+      <BluetoothRemoteCard />
       <SpotifyCard />
       <IntegrationCard
         title="ClinicSense / MassageBook"

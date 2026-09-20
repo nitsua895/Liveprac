@@ -8,6 +8,7 @@ import { TimerDial } from '../components/TimerDial'
 import { isGamepadSupported, startGamepadBridge } from '../lib/gamepad'
 import { remoteController } from '../lib/remote'
 import { formatClock, sessionDurationSec } from '../lib/time'
+import { acquireWakeLock, reacquireOnVisible, releaseWakeLock } from '../lib/wakeLock'
 import { useAppState } from '../state/AppStateContext'
 
 const QUICK_EXTEND_SEC = 2 * 60
@@ -88,6 +89,19 @@ export function LiveSession() {
     })
     if (nextSection) advanceSection()
   }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection])
+
+  // Keeps the screen (and the BLE remote's connection) alive for the whole
+  // appointment — a backgrounded/locked screen is the single biggest cause
+  // of a dropped remote over a long shift.
+  useEffect(() => {
+    if (!activeSession) return
+    void acquireWakeLock()
+    const stopReacquire = reacquireOnVisible()
+    return () => {
+      stopReacquire()
+      releaseWakeLock()
+    }
+  }, [activeSession?.instanceId])
 
   if (!activeSession) {
     navigate('/')

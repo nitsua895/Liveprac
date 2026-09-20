@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { NowPlayingBar } from '../components/NowPlayingBar'
+import { RemoteStatusPill } from '../components/RemoteStatusPill'
 import { useAppState } from '../state/AppStateContext'
 
 export function Hub() {
@@ -27,6 +28,8 @@ export function Hub() {
           {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
         </span>
       </header>
+
+      <RemoteStatusPill />
 
       <NowPlayingBar compact />
 
