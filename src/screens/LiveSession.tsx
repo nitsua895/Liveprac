@@ -5,6 +5,7 @@ import { NowPlayingBar } from '../components/NowPlayingBar'
 import { SectionListEditor } from '../components/SectionListEditor'
 import { SectionTimeline } from '../components/SectionTimeline'
 import { TimerDial } from '../components/TimerDial'
+import { playSessionEndChime, stopSessionEndChime } from '../lib/chime'
 import { isGamepadSupported, startGamepadBridge } from '../lib/gamepad'
 import { remoteController } from '../lib/remote'
 import { formatClock, sessionDurationSec } from '../lib/time'
@@ -32,6 +33,7 @@ export function LiveSession() {
   const [now, setNow] = useState(() => Date.now())
   const [editingPlan, setEditingPlan] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const [sessionEnded, setSessionEnded] = useState(false)
   const cuedSectionRef = useRef<number | null>(null)
   const warnedSectionRef = useRef<number | null>(null)
   useEffect(() => {
@@ -82,13 +84,20 @@ export function LiveSession() {
     if (!activeSession || activeSession.paused || sectionRemainingSec > 0) return
     if (cuedSectionRef.current === activeSession.currentSectionIndex) return
     cuedSectionRef.current = activeSession.currentSectionIndex
-    pushAmbientCue({
-      kind: 'timer',
-      tone: 'next',
-      message: nextSection ? `Now: ${nextSection.name}` : 'Session complete',
-    })
-    if (nextSection) advanceSection()
-  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection])
+    if (nextSection) {
+      pushAmbientCue({ kind: 'timer', tone: 'next', message: `Now: ${nextSection.name}` })
+      advanceSection()
+    } else {
+      // Last section ran out — stop the clock and hand off to the closing
+      // screen instead of letting it count into overtime unattended.
+      setSessionEnded(true)
+      playSessionEndChime()
+      togglePause()
+    }
+  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, togglePause])
+
+  // Safety net: never leave the chime playing after leaving this screen.
+  useEffect(() => () => stopSessionEndChime(), [])
 
   // Keeps the screen (and the BLE remote's connection) alive for the whole
   // appointment — a backgrounded/locked screen is the single biggest cause
@@ -171,6 +180,36 @@ export function LiveSession() {
             Done
           </button>
         </div>
+      </div>
+    )
+  }
+
+  if (sessionEnded) {
+    const sessionEvents = events.filter((e) => e.sessionInstanceId === activeSession.instanceId)
+    const lovedCount = sessionEvents.filter((e) => e.type === 'loved').length
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-400">Session complete</p>
+        <h1 className="text-3xl font-light text-neutral-100">
+          {template.name}
+          {client ? ` · ${client.name}` : ''}
+        </h1>
+        {lovedCount > 0 && (
+          <p className="text-neutral-500">
+            {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            stopSessionEndChime()
+            endSession()
+            navigate('/')
+          }}
+          className="rounded-full bg-accent-500 px-8 py-4 text-xl font-medium text-white"
+        >
+          Close out session
+        </button>
       </div>
     )
   }

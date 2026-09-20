@@ -8,8 +8,12 @@ import { applyAccent, getStoredAccent } from './lib/theme'
 import { completeAuthFromUrl } from './lib/spotify'
 import { bluetoothRemote } from './lib/bluetoothRemote'
 import { startBleDispatch } from './lib/bleMapping'
+import { primeChime } from './lib/chime'
 
 applyAccent(getStoredAccent())
+// Unlocks audio playback on the first tap anywhere, so the session-end chime
+// isn't silently blocked by mobile autoplay restrictions hours later.
+document.addEventListener('pointerdown', primeChime, { once: true })
 // Translates raw BLE notifications into remote-control events app-wide, not
 // just while the live session screen is mounted — the connection is meant
 // to hold across an entire shift, not just one open tab of the app.
