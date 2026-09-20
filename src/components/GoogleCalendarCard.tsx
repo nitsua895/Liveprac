@@ -1,20 +1,12 @@
 import { useState } from 'react'
 import * as googleCalendar from '../lib/googleCalendar'
 
-/**
- * Unlike Spotify, Google doesn't hand out one shared Client ID — each
- * developer registers their own OAuth client in Google Cloud Console. So
- * this card doubles as the one-time setup step: paste the Client ID here
- * before Connect does anything.
- */
 export function GoogleCalendarCard() {
-  const [clientId, setClientIdInput] = useState(() => googleCalendar.getClientId())
   const [connected, setConnected] = useState(() => googleCalendar.isConnected())
   const [error, setError] = useState<string | null>(null)
 
   async function connect() {
     try {
-      googleCalendar.setClientId(clientId)
       await googleCalendar.beginAuth()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -47,39 +39,25 @@ export function GoogleCalendarCard() {
           Disconnect
         </button>
       ) : (
-        <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm text-neutral-400">
-            Google Client ID
-            <input
-              value={clientId}
-              onChange={(e) => setClientIdInput(e.target.value)}
-              placeholder="xxxxxxxxxxxx.apps.googleusercontent.com"
-              className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-accent-500/50"
-            />
-          </label>
-          <button
-            type="button"
-            disabled={!clientId.trim()}
-            onClick={() => void connect()}
-            className="self-start rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40"
-          >
-            Connect Google Calendar
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => void connect()}
+          className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-neutral-950"
+        >
+          Connect Google Calendar
+        </button>
       )}
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <details className="mt-4 text-sm text-neutral-400">
-        <summary>Where do I get a Client ID?</summary>
+        <summary>Connection troubleshooting</summary>
         <p className="mt-2">
-          In Google Cloud Console: create a project, enable the Google Calendar API, configure the
-          OAuth consent screen (add yourself as a test user — no Google review needed for that),
-          then create an OAuth Client ID of type "Web application". Add this exact Authorized
-          redirect URI and Authorized JavaScript origin:
+          If Google reports a redirect mismatch, add this exact URI as an Authorized redirect URI
+          on this app's OAuth client in Google Cloud Console, including the final slash:
         </p>
         <code className="mt-2 block break-all text-accent-200">{googleCalendar.redirectUri()}</code>
         <p className="mt-2">
-          Only accounts added as test users on the consent screen can connect until the app is
-          verified — that's fine for testing with just Shelby's account for now.
+          Until this app is verified with Google, only accounts added as test users on the OAuth
+          consent screen can connect — that's expected while testing with just Shelby's account.
         </p>
       </details>
     </div>

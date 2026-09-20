@@ -1,11 +1,11 @@
 /**
  * Google Calendar, read-only.
  *
- * Same shape as spotify.ts: PKCE authorization-code flow so no backend is
- * needed. Unlike Spotify, Google doesn't hand out a single public Client ID
- * for everyone to share — each developer creates their own OAuth client in
- * Google Cloud Console, so the Client ID is entered once in Settings and
- * kept in localStorage rather than hardcoded here.
+ * Same shape as spotify.ts: PKCE authorization-code flow, no backend, no
+ * client secret — the code_verifier proves this request came from the same
+ * app that started it, which is what a secret would otherwise be for. The
+ * Client ID itself isn't sensitive (it just names the app to Google), so
+ * it's safe to hardcode like Spotify's.
  *
  * Scope is calendar.readonly: Liveprac only ever reads events. Which client
  * profile an appointment belongs to is decided here, by hand, and stored
@@ -16,9 +16,9 @@ const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const API = 'https://www.googleapis.com/calendar/v3'
 const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
+const CLIENT_ID = '1002157149576-4cfstr7eufmrdokvofm4989cmp0r4go7.apps.googleusercontent.com'
 
 const KEYS = {
-  clientId: 'liveprac:v1:googleClientId',
   verifier: 'liveprac:v1:googleVerifier',
   state: 'liveprac:v1:googleAuthState',
   token: 'liveprac:v1:googleToken',
@@ -54,18 +54,6 @@ function write(key: string, value: string | null) {
   } catch {
     // Storage unavailable — connection just won't persist.
   }
-}
-
-export function getClientId(): string {
-  return read(KEYS.clientId) ?? ''
-}
-
-export function setClientId(clientId: string) {
-  write(KEYS.clientId, clientId.trim() || null)
-}
-
-export function isConfigured(): boolean {
-  return getClientId().length > 0
 }
 
 /** Must exactly match an Authorized redirect URI on the Google OAuth client. */
@@ -106,9 +94,6 @@ function base64url(buffer: ArrayBuffer): string {
 }
 
 export async function beginAuth(): Promise<void> {
-  const clientId = getClientId()
-  if (!clientId) throw new Error('Add a Google Client ID first.')
-
   const state = randomString(24)
   write(KEYS.state, state)
   const verifier = randomString(48)
@@ -118,7 +103,7 @@ export async function beginAuth(): Promise<void> {
   )
 
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id: CLIENT_ID,
     response_type: 'code',
     redirect_uri: redirectUri(),
     code_challenge_method: 'S256',
@@ -147,7 +132,7 @@ export async function completeAuthFromUrl(): Promise<boolean> {
   if (!verifier) throw new Error('Google connection expired. Please try Connect again.')
 
   const body = new URLSearchParams({
-    client_id: getClientId(),
+    client_id: CLIENT_ID,
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri(),
@@ -186,7 +171,7 @@ async function freshAccessToken(): Promise<string | null> {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: getClientId(),
+      client_id: CLIENT_ID,
       grant_type: 'refresh_token',
       refresh_token: token.refreshToken,
     }),
