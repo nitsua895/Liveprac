@@ -2,6 +2,7 @@ import { useState } from 'react'
 import * as spotify from '../lib/spotify'
 import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
 import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
+import { GoogleCalendarCard } from '../components/GoogleCalendarCard'
 
 function IntegrationCard({
   title,
@@ -124,6 +125,7 @@ export function Settings() {
       <AccentPicker />
 
       <BluetoothRemoteCard />
+      <GoogleCalendarCard />
       <SpotifyCard />
       <IntegrationCard
         title="ClinicSense / MassageBook"

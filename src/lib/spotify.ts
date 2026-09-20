@@ -151,20 +151,28 @@ export async function beginAuth(): Promise<void> {
   window.location.href = `${AUTH_URL}?${params}`
 }
 
-/** Call once on load: swaps the ?code= Spotify sent us for a token. */
+/**
+ * Call once on load: swaps a Spotify ?code= for a token, if one is present.
+ * Google Calendar redirects back to this same "/" too, so the `state` value
+ * is checked *before* touching the URL or throwing — otherwise this would
+ * swallow Google's redirect (and vice versa) since both carry a bare
+ * ?code=&state=.
+ */
 export async function completeAuthFromUrl(): Promise<boolean> {
   const params = new URLSearchParams(window.location.search)
-  const code = params.get('code')
+  const expectedState = read(KEYS.state)
+  if (!expectedState || params.get('state') !== expectedState) return false
+
+  window.history.replaceState({}, '', window.location.pathname)
   if (params.has('error')) {
-    window.history.replaceState({}, '', window.location.pathname)
+    write(KEYS.state, null)
+    write(KEYS.verifier, null)
     throw new Error('Spotify connection was not approved. Please try Connect again.')
   }
-  if (!code) return false
 
+  const code = params.get('code')
   const verifier = read(KEYS.verifier)
-  // Clear the query string either way so a reload doesn't retry a used code.
-  window.history.replaceState({}, '', window.location.pathname)
-  if (!verifier || !read(KEYS.state) || params.get('state') !== read(KEYS.state)) {
+  if (!code || !verifier) {
     throw new Error('Spotify login expired or was opened in another browser. Please connect again here.')
   }
 

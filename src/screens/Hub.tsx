@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { NowPlayingBar } from '../components/NowPlayingBar'
 import { RemoteStatusPill } from '../components/RemoteStatusPill'
+import { TodaysAppointments } from '../components/TodaysAppointments'
 import { useAppState } from '../state/AppStateContext'
 
 export function Hub() {
@@ -32,6 +33,8 @@ export function Hub() {
       <RemoteStatusPill />
 
       <NowPlayingBar compact />
+
+      <TodaysAppointments />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">Start a session</h2>

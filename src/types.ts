@@ -69,3 +69,13 @@ export interface AmbientCue {
   /** Repeats of the same signal fold into one cue rather than queueing up. */
   count: number
 }
+
+/**
+ * Which client a Google Calendar appointment belongs to. Kept entirely in
+ * Liveprac and set by hand — never inferred from the event title or
+ * attendees, and never written back to Google.
+ */
+export interface CalendarLink {
+  googleEventId: string
+  clientId: string
+}
