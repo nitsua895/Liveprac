@@ -272,6 +272,8 @@ function RoutinePickerModal({
   onPick: (templateId: string) => void
   onClose: () => void
 }) {
+  const navigate = useNavigate()
+
   return (
     <div className="modal-backdrop">
       <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="routine-picker-title">
@@ -297,7 +299,14 @@ function RoutinePickerModal({
             </button>
           ))}
         </div>
-        <button type="button" onClick={onClose} className="mt-4 w-full text-center text-sm text-neutral-500">
+        <button
+          type="button"
+          onClick={() => navigate('/build')}
+          className="mt-3 w-full text-center text-sm text-accent-400/80"
+        >
+          None of these fit — create a new routine
+        </button>
+        <button type="button" onClick={onClose} className="mt-2 w-full text-center text-sm text-neutral-500">
           Cancel
         </button>
       </div>

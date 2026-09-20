@@ -47,7 +47,10 @@ export function HubShell() {
       <OrientationControl />
       <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
         <div className={`app-topbar-inner mx-auto flex items-center gap-2 px-1 sm:px-6 lg:px-8 ${inSession ? 'max-w-6xl' : 'max-w-4xl'}`}>
-          <span className="app-logo shrink-0 pl-1 text-sm font-medium tracking-tight text-neutral-500 sm:pl-0">
+          {/* Decorative branding is the first thing to go on a cramped phone
+              row — the OS's own status bar clock makes ours redundant there
+              too, so both wait for tablet width. */}
+          <span className="app-logo hidden shrink-0 text-sm font-medium tracking-tight text-neutral-500 sm:inline">
             Liveprac
           </span>
           <nav aria-label="Primary" hidden={inSession} className="app-nav flex min-w-0 flex-1 justify-around sm:justify-start sm:gap-2">
@@ -57,7 +60,7 @@ export function HubShell() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `rounded-lg px-3 text-xs transition-colors sm:px-4 sm:text-sm ${
+                  `rounded-lg px-2 text-xs transition-colors sm:px-4 sm:text-sm ${
                     isActive ? 'bg-accent-500/10 text-accent-300' : 'text-neutral-500'
                   }`
                 }
@@ -67,7 +70,9 @@ export function HubShell() {
             ))}
           </nav>
           {inSession && <span className="flex-1" />}
-          <AppClock />
+          <span className="hidden sm:block">
+            <AppClock />
+          </span>
         </div>
       </header>
       <main

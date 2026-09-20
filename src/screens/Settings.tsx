@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as spotify from '../lib/spotify'
+import { exportData, resetAllData } from '../lib/backup'
 import { getCueSoundMode, previewCueSound, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
 import { ACCENT_PREVIEW_COLORS, ACCENT_THEMES, applyAccent, getStoredAccent, type AccentTheme } from '../lib/theme'
 import { BluetoothRemoteCard } from '../components/BluetoothRemoteCard'
@@ -162,6 +163,62 @@ function SpotifyCard() {
   )
 }
 
+function DataCard() {
+  const [confirming, setConfirming] = useState(false)
+
+  return (
+    <div className="surface-card p-5">
+      <p className="mb-1 text-neutral-100">Your Data</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        Clients, routines, session history, and notes all live only in this browser, on this device
+        — nothing is backed up automatically. Clearing browser data, switching devices, or
+        reinstalling loses it all. Download a backup now and then; a future version may add Google
+        account sync for automatic cloud backup.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={exportData}
+          className="rounded-full border border-neutral-700 px-4 py-2 text-sm text-neutral-300"
+        >
+          Download backup
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="rounded-full border border-red-900/60 px-4 py-2 text-sm text-red-400/80"
+        >
+          Reset all data
+        </button>
+      </div>
+      {confirming && (
+        <div className="mt-3 rounded-xl border border-red-900/40 bg-red-950/20 p-3">
+          <p className="mb-2 text-sm text-red-300">
+            This permanently deletes every client, routine, and session note on this device. This
+            can't be undone — download a backup first if you're not sure.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={resetAllData}
+              className="rounded-full bg-red-600 px-4 py-1.5 text-sm font-medium text-white"
+            >
+              Yes, delete everything
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="rounded-full border border-neutral-800 px-4 py-1.5 text-sm text-neutral-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Settings() {
   return (
     <div className="page-stack gap-4">
@@ -182,6 +239,8 @@ export function Settings() {
         status="No public API"
         detail="Neither tool exposes a public integration API. Use 'Copy note for CRM' in the Client Log to paste session summaries into their notes field by hand."
       />
+
+      <DataCard />
 
       <p className="text-center text-xs text-neutral-600">build {__BUILD_ID__}</p>
     </div>

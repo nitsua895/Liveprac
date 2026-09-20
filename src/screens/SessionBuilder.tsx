@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { newTemplateId } from '../state/defaultTemplates'
+import { newSectionId, newTemplateId } from '../state/defaultTemplates'
 import { useAppState } from '../state/AppStateContext'
 import type { SessionTemplate } from '../types'
 import { sessionDurationSec } from '../lib/time'
@@ -7,6 +7,17 @@ import { SectionListEditor } from '../components/SectionListEditor'
 
 function emptyTemplate(): SessionTemplate {
   return { id: newTemplateId(), name: 'New Session', sections: [], createdAt: Date.now() }
+}
+
+/** New ids throughout — a duplicate must never share a section id with its
+ *  source, or per-session history can't tell which routine a section belongs to. */
+function duplicateTemplate(source: SessionTemplate): SessionTemplate {
+  return {
+    id: newTemplateId(),
+    name: `${source.name} copy`,
+    sections: source.sections.map((section) => ({ ...section, id: newSectionId() })),
+    createdAt: Date.now(),
+  }
 }
 
 export function SessionBuilder() {
@@ -51,6 +62,13 @@ export function SessionBuilder() {
                 className="rounded-lg border border-neutral-800 px-3 py-1.5 text-sm text-neutral-300"
               >
                 Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(duplicateTemplate(template))}
+                className="rounded-lg border border-neutral-800 px-3 py-1.5 text-sm text-neutral-300"
+              >
+                Duplicate
               </button>
               <button
                 type="button"
