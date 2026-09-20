@@ -59,12 +59,32 @@ export function TodaysAppointments() {
               key={event.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-3"
             >
-              <div className="min-w-0">
-                <p className="truncate text-sm text-neutral-200">{event.summary}</p>
-                <p className="text-xs text-neutral-500">
-                  {event.allDay ? 'All day' : formatTimeRange(event.startMs, event.endMs)}
-                </p>
-              </div>
+              {event.htmlLink ? (
+                <a
+                  href={event.htmlLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group min-w-0 flex-1"
+                  title="Open in Google Calendar"
+                >
+                  <p className="flex items-center gap-1.5 truncate text-sm text-neutral-200 group-hover:text-accent-300">
+                    <span className="truncate">{event.summary}</span>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" className="shrink-0 opacity-50 group-hover:opacity-100" aria-hidden="true">
+                      <path d="M9 6h9v9M18 6 7 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </p>
+                  <p className="text-xs text-neutral-500">
+                    {event.allDay ? 'All day' : formatTimeRange(event.startMs, event.endMs)}
+                  </p>
+                </a>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-neutral-200">{event.summary}</p>
+                  <p className="text-xs text-neutral-500">
+                    {event.allDay ? 'All day' : formatTimeRange(event.startMs, event.endMs)}
+                  </p>
+                </div>
+              )}
               {linkedClient ? (
                 <div className="flex items-center gap-2">
                   <span className="rounded-full border border-accent-500/40 bg-accent-500/10 px-3 py-1 text-xs text-accent-300">

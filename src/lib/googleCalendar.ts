@@ -45,6 +45,8 @@ export interface CalendarEvent {
   endMs: number
   allDay: boolean
   location: string | null
+  /** Google's own link to this event, for "open in Google Calendar". */
+  htmlLink: string | null
 }
 
 function read(key: string): string | null {
@@ -237,6 +239,7 @@ export async function fetchTodayEvents(): Promise<CalendarEvent[]> {
     id: string
     summary?: string
     location?: string
+    htmlLink?: string
     start: { dateTime?: string; date?: string }
     end: { dateTime?: string; date?: string }
     status?: string
@@ -253,6 +256,7 @@ export async function fetchTodayEvents(): Promise<CalendarEvent[]> {
         endMs: new Date(item.end.dateTime ?? item.end.date ?? 0).getTime(),
         allDay,
         location: item.location ?? null,
+        htmlLink: item.htmlLink ?? null,
       }
     })
 }
