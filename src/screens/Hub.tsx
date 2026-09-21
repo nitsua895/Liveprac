@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { BodyZoneDiagram } from '../components/BodyZoneDiagram'
 import { RemoteStatusPill } from '../components/RemoteStatusPill'
 import { TodaysAppointments } from '../components/TodaysAppointments'
 import { bluetoothRemote, type BleStatus } from '../lib/bluetoothRemote'
-import { BODY_ZONE_LABELS } from '../lib/bodyZones'
+import { BODY_ZONE_LABELS, BODY_ZONES } from '../lib/bodyZones'
 import { pressureInsights } from '../lib/clientInsights'
 import { getCueSoundMode, primeCueAudio } from '../lib/cueSound'
 import { sessionDurationSec } from '../lib/time'
 import { isVisible } from '../lib/visibility'
 import { isWakeLockSupported } from '../lib/wakeLock'
+import { getPractitionerPin, setPractitionerPin, verifyPractitionerPin } from '../lib/practitionerPin'
 import { useAppState } from '../state/AppStateContext'
+import type { ClientProfile } from '../types'
 
 export function Hub() {
   const {
     templates, clients, events, sessionNotes, addClient, updateClient, startSession, activeSession,
   } = useAppState()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [pickingTemplateId, setPickingTemplateId] = useState<string | null>(null)
   // undefined = choosing; null = walk-in; string = selected client.
   const [launchClientId, setLaunchClientId] = useState<string | null | undefined>(undefined)
@@ -24,6 +27,7 @@ export function Hub() {
   const [bleStatus, setBleStatus] = useState<BleStatus>(() => bluetoothRemote.getStatus())
   const [remoteBattery, setRemoteBattery] = useState<number | null>(() => bluetoothRemote.getBattery())
   const [gamepadConnected, setGamepadConnected] = useState(false)
+  const [showClientIntake, setShowClientIntake] = useState(false)
 
   useEffect(() => {
     const offStatus = bluetoothRemote.onStatusChange(setBleStatus)
@@ -43,6 +47,14 @@ export function Hub() {
       window.clearInterval(interval)
     }
   }, [])
+
+  useEffect(() => {
+    const templateId = searchParams.get('template')
+    const clientId = searchParams.get('client')
+    if (!templateId || !templates.some((template) => template.id === templateId)) return
+    setPickingTemplateId(templateId)
+    setLaunchClientId(clientId && clients.some((client) => client.id === clientId) ? clientId : null)
+  }, [clients, searchParams, templates])
 
   const selectedTemplate = templates.find((template) => template.id === pickingTemplateId)
   const selectedClient = clients.find((client) => client.id === launchClientId)
@@ -71,12 +83,17 @@ export function Hub() {
     setPickingTemplateId(null)
     setLaunchClientId(undefined)
     setNewClientName('')
+    setShowClientIntake(false)
+    setSearchParams({})
   }
 
   function beginSession() {
     if (!pickingTemplateId || launchClientId === undefined) return
     void primeCueAudio()
-    startSession(pickingTemplateId, launchClientId)
+    const planSections = selectedClient?.plan?.sourceTemplateId === pickingTemplateId
+      ? selectedClient.plan.sections
+      : undefined
+    startSession(pickingTemplateId, launchClientId, planSections)
     navigate('/session')
   }
 
@@ -119,7 +136,13 @@ export function Hub() {
       {selectedTemplate && (
         <div className="modal-backdrop">
           <div className={`modal-card ${launchClientId !== undefined ? 'launchpad-card' : ''}`} role="dialog" aria-modal="true" aria-labelledby="start-session-title">
-            {launchClientId === undefined ? (
+            {showClientIntake && selectedClient ? (
+              <ClientIntakePanel
+                client={selectedClient}
+                onUpdate={(changes) => updateClient(selectedClient.id, changes)}
+                onClose={() => setShowClientIntake(false)}
+              />
+            ) : launchClientId === undefined ? (
               <>
                 <h3 id="start-session-title" className="mb-1 text-lg text-neutral-100">Who is this session for?</h3>
                 <p className="mb-4 text-sm text-neutral-500">{selectedTemplate.name}</p>
@@ -162,6 +185,18 @@ export function Hub() {
                   </div>
                   <button type="button" onClick={() => setLaunchClientId(undefined)} className="secondary-action">Change client</button>
                 </header>
+
+                {selectedClient && (
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-950/35 px-3 py-2">
+                    <p className="text-sm text-neutral-500">
+                      {selectedClient.intakeCompletedAt ? 'Client intake on file' : 'No client intake yet'}
+                      {selectedClient.plan?.sourceTemplateId === selectedTemplate.id ? ' · Using client plan' : ' · Using base routine'}
+                    </p>
+                    <button type="button" onClick={() => setShowClientIntake(true)} className="text-sm text-accent-300">
+                      {selectedClient.intakeCompletedAt ? 'Update intake' : 'Hand to client'}
+                    </button>
+                  </div>
+                )}
 
                 {selectedClient ? (
                   <div className="launchpad-grid">
@@ -252,5 +287,101 @@ function ReadinessItem({ ready, label, neutral = false }: { ready: boolean; labe
       <span className="readiness-dot" aria-hidden="true" />
       {label}
     </span>
+  )
+}
+
+function ClientIntakePanel({ client, onUpdate, onClose }: {
+  client: ClientProfile
+  onUpdate: (changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference' | 'communicationPreference' | 'statedPressure' | 'intakeCompletedAt'>>) => void
+  onClose: () => void
+}) {
+  const [stage, setStage] = useState<'setup' | 'form' | 'thanks' | 'unlock'>(() => getPractitionerPin() ? 'form' : 'setup')
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState(false)
+  const [preferences, setPreferences] = useState(client.notes)
+  const [focus, setFocus] = useState(client.focusAreas ?? '')
+  const [avoid, setAvoid] = useState(client.contraindications ?? '')
+  const [temperature, setTemperature] = useState(client.temperaturePreference ?? 'neutral')
+  const [communication, setCommunication] = useState(client.communicationPreference ?? 'quiet')
+  const [pressure, setPressure] = useState(client.statedPressure ?? {})
+
+  if (stage === 'setup') {
+    return (
+      <div className="client-mode-setup">
+        <p className="section-label">Before handing over the iPad</p>
+        <h3 className="mt-2 text-2xl font-light text-neutral-100">Set a practitioner PIN</h3>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-500">
+          This four-digit screen lock keeps the client inside intake mode. It is a privacy curtain on this iPad, not encrypted account security.
+        </p>
+        <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="off" aria-label="New practitioner PIN" placeholder="4-digit PIN" className="client-pin-input" />
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="secondary-action">Cancel</button>
+          <button type="button" disabled={pin.length !== 4} onClick={() => { if (setPractitionerPin(pin)) { setPin(''); setStage('form') } }} className="primary-action">Enter client mode</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (stage === 'thanks') {
+    return (
+      <div className="client-mode-complete">
+        <p className="section-label">All set</p>
+        <h3 className="mt-3 text-3xl font-light text-neutral-100">Thank you, {client.name}</h3>
+        <p className="mt-2 text-neutral-500">Your practitioner will take it from here.</p>
+        <button type="button" onClick={() => setStage('unlock')} className="mt-10 text-sm text-neutral-700">Practitioner</button>
+      </div>
+    )
+  }
+
+  if (stage === 'unlock') {
+    return (
+      <div className="client-mode-complete">
+        <p className="section-label">Practitioner access</p>
+        <input value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" autoComplete="off" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
+        {pinError && <p className="mt-2 text-sm text-red-400">Incorrect PIN</p>}
+        <button type="button" disabled={pin.length !== 4} onClick={() => { if (verifyPractitionerPin(pin)) onClose(); else setPinError(true) }} className="primary-action mt-5">Unlock</button>
+      </div>
+    )
+  }
+
+  const zones = BODY_ZONES.filter((zone) => zone !== 'none')
+  return (
+    <div className="client-intake">
+      <p className="section-label">Welcome, {client.name}</p>
+      <h3 className="mt-2 text-2xl font-light text-neutral-100">What would help you feel comfortable today?</h3>
+      <div className="client-intake-grid">
+        <LaunchField label="Areas to focus" value={focus} placeholder="Shoulders, lower back…" onChange={setFocus} />
+        <LaunchField label="Areas or techniques to avoid" value={avoid} placeholder="Injuries, sensitivities…" onChange={setAvoid} alert={Boolean(avoid.trim())} />
+        <LaunchField label="Anything else to know" value={preferences} placeholder="Positioning, comfort, communication…" onChange={setPreferences} />
+        <div className="launchpad-panel">
+          <p className="launchpad-label">Room temperature</p>
+          <Segmented values={['cooler', 'neutral', 'warmer']} value={temperature} onChange={(value) => setTemperature(value as NonNullable<ClientProfile['temperaturePreference']>)} />
+        </div>
+        <div className="launchpad-panel launchpad-span">
+          <p className="launchpad-label">Communication</p>
+          <Segmented values={['quiet', 'check_ins', 'collaborative']} labels={['Mostly quiet', 'Occasional check-ins', 'Collaborative']} value={communication} onChange={(value) => setCommunication(value as NonNullable<ClientProfile['communicationPreference']>)} />
+        </div>
+        <div className="launchpad-panel launchpad-span">
+          <p className="launchpad-label">Pressure by area</p>
+          <div className="intake-pressure-grid">
+            {zones.map((zone) => (
+              <div key={zone} className="intake-pressure-row">
+                <span>{BODY_ZONE_LABELS[zone]}</span>
+                <Segmented values={['lighter', 'moderate', 'firmer']} value={pressure[zone] ?? 'moderate'} onChange={(value) => setPressure((current) => ({ ...current, [zone]: value as 'lighter' | 'moderate' | 'firmer' }))} compact />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <button type="button" onClick={() => { onUpdate({ notes: preferences, focusAreas: focus, contraindications: avoid, temperaturePreference: temperature, communicationPreference: communication, statedPressure: pressure, intakeCompletedAt: Date.now() }); setStage('thanks') }} className="primary-action mt-5 w-full">Submit intake</button>
+    </div>
+  )
+}
+
+function Segmented({ values, labels, value, onChange, compact = false }: { values: string[]; labels?: string[]; value: string; onChange: (value: string) => void; compact?: boolean }) {
+  return (
+    <div className={`segmented ${compact ? 'compact' : ''}`}>
+      {values.map((item, index) => <button key={item} type="button" onClick={() => onChange(item)} className={value === item ? 'selected' : ''}>{labels?.[index] ?? item.replace('_', ' ')}</button>)}
+    </div>
   )
 }
