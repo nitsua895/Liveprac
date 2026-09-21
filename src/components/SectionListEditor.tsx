@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { newSectionId } from '../state/defaultTemplates'
 import { BODY_ZONE_LABELS, BODY_ZONES } from '../lib/bodyZones'
 import type { SectionTemplate } from '../types'
@@ -16,6 +17,8 @@ export function SectionListEditor({
   /** Live sessions keep their appointment end fixed while allocations change. */
   preserveTotal?: boolean
 }) {
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
   function updateSection(index: number, patch: Partial<SectionTemplate>) {
     onChange(sections.map((section, sectionIndex) =>
       sectionIndex === index ? { ...section, ...patch } : section,
@@ -34,23 +37,27 @@ export function SectionListEditor({
       const released = Math.min(-deltaSec, Math.max(0, next[index].durationSec - MIN_SEC))
       if (!released) return
       next[index].durationSec -= released
-      const receiver = next[index + 1] ?? next[index - 1]
-      if (receiver) receiver.durationSec += released
+      const receivers = next.filter((_, sectionIndex) => sectionIndex !== index)
+      const share = released / receivers.length
+      receivers.forEach((section) => { section.durationSec += share })
       onChange(next)
       return
     }
 
     let needed = deltaSec
-    const donorOrder = [
-      ...next.map((_, donorIndex) => donorIndex).slice(index + 1),
-      ...next.map((_, donorIndex) => donorIndex).slice(0, index).reverse(),
-    ]
-    for (const donorIndex of donorOrder) {
-      const available = Math.max(0, next[donorIndex].durationSec - MIN_SEC)
-      const taken = Math.min(available, needed)
-      next[donorIndex].durationSec -= taken
-      needed -= taken
-      if (!needed) break
+    let donors = next.map((_, donorIndex) => donorIndex).filter((donorIndex) => donorIndex !== index)
+    while (needed > 0.001 && donors.length) {
+      const share = needed / donors.length
+      let takenThisPass = 0
+      donors = donors.filter((donorIndex) => {
+        const available = Math.max(0, next[donorIndex].durationSec - MIN_SEC)
+        const taken = Math.min(available, share)
+        next[donorIndex].durationSec -= taken
+        takenThisPass += taken
+        return available - taken > 0.001
+      })
+      if (takenThisPass < 0.001) break
+      needed -= takenThisPass
     }
     const received = deltaSec - needed
     if (!received) return
@@ -93,13 +100,20 @@ export function SectionListEditor({
     event.preventDefault()
     let currentIndex = index
     let working = sections.map((section) => ({ ...section }))
-    const pointerId = event.pointerId
-    event.currentTarget.setPointerCapture(pointerId)
+    const draggedId = sections[index].id
+    setDraggingId(draggedId)
 
     function move(pointerEvent: PointerEvent) {
+      pointerEvent.preventDefault()
       const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-section-row]'))
-      let target = rows.findIndex((row) => pointerEvent.clientY < row.getBoundingClientRect().bottom)
-      if (target < 0) target = rows.length - 1
+      const previous = rows[currentIndex - 1]
+      const following = rows[currentIndex + 1]
+      let target = currentIndex
+      if (previous && pointerEvent.clientY < previous.getBoundingClientRect().top + previous.offsetHeight / 2) {
+        target = currentIndex - 1
+      } else if (following && pointerEvent.clientY > following.getBoundingClientRect().top + following.offsetHeight / 2) {
+        target = currentIndex + 1
+      }
       if (target !== currentIndex) {
         working = moveSection(currentIndex, target, working)
         currentIndex = target
@@ -110,9 +124,10 @@ export function SectionListEditor({
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', finish)
       window.removeEventListener('pointercancel', finish)
+      setDraggingId(null)
     }
 
-    window.addEventListener('pointermove', move)
+    window.addEventListener('pointermove', move, { passive: false })
     window.addEventListener('pointerup', finish, { once: true })
     window.addEventListener('pointercancel', finish, { once: true })
   }
@@ -123,11 +138,13 @@ export function SectionListEditor({
         <div
           key={section.id}
           data-section-row
+          data-dragging={draggingId === section.id}
           className="section-editor-row grid items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
         >
           <button
             type="button"
             aria-label={`Drag ${section.name} to reorder`}
+            aria-grabbed={draggingId === section.id}
             onPointerDown={(event) => beginDrag(index, event)}
             onKeyDown={(event) => {
               if (event.key === 'ArrowUp') moveSection(index, index - 1)
@@ -210,7 +227,7 @@ export function SectionListEditor({
       </button>
       {preserveTotal && (
         <p className="text-center text-xs text-neutral-500">
-          Time added here is automatically borrowed from the following sections.
+          Changes are shared evenly across the remaining plan. The session end time stays fixed.
         </p>
       )}
     </div>

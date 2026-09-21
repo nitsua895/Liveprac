@@ -23,13 +23,6 @@ export function HubShell() {
   // release that lock after navigation/reload while the refreshed manifest
   // propagates through Android's installed-web-app cache.
   useEffect(() => {
-    if (!inSession && Math.min(window.innerWidth, window.innerHeight) < 600) {
-      void screen.orientation.lock('portrait').catch(() => {
-        // A normal browser tab may require fullscreen; the visible Portrait
-        // control remains available for the installed app.
-      })
-      return
-    }
     try {
       screen.orientation?.unlock()
     } catch {
@@ -46,7 +39,7 @@ export function HubShell() {
     <div className={`app-shell bg-neutral-950 text-neutral-100 ${inSession ? 'is-session' : ''}`}>
       <AmbientGlow />
       <OrientationControl />
-      <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
+      {!inSession && <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
         <div className={`app-topbar-inner mx-auto flex items-center gap-2 px-1 sm:px-6 lg:px-8 ${inSession ? 'max-w-6xl' : 'max-w-4xl'}`}>
           {/* Decorative branding is the first thing to go on a cramped phone
               row — the OS's own status bar clock makes ours redundant there
@@ -70,16 +63,15 @@ export function HubShell() {
               </NavLink>
             ))}
           </nav>
-          {inSession && <span className="flex-1" />}
           <span className="hidden sm:block">
             <AppClock />
           </span>
         </div>
-      </header>
+      </header>}
       <main
         className={`app-main mx-auto ${
           inSession
-            ? 'live-session-main max-w-6xl px-3 pb-4 pt-3 sm:px-5 sm:pb-6 sm:pt-5 lg:px-6 lg:pt-6'
+            ? 'live-session-main w-full max-w-none px-3 pb-4 pt-1 sm:px-5 sm:pb-6 lg:px-6'
             : 'max-w-4xl px-4 pb-6 pt-6 sm:px-6 sm:pt-10 lg:px-8 lg:pt-14'
         }`}
       >

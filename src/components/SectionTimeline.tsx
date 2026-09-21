@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { SectionTemplate } from '../types'
 
 /**
@@ -7,18 +8,31 @@ import type { SectionTemplate } from '../types'
 export function SectionTimeline({
   sections,
   currentIndex,
+  approaching = false,
 }: {
   sections: SectionTemplate[]
   currentIndex: number
+  approaching?: boolean
 }) {
+  const container = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const rail = container.current
+    const target = rail?.children[currentIndex] as HTMLElement | undefined
+    if (!rail || !target) return
+    rail.scrollTo({ left: Math.max(0, target.offsetLeft - rail.offsetLeft - rail.clientWidth / 3), behavior: 'auto' })
+  }, [currentIndex])
   return (
-    <div className={`section-timeline flex w-full gap-2 overflow-x-auto pb-1 ${sections.length > 6 ? 'many-sections' : ''}`}>
+    <div ref={container} role="list" aria-label="Session timeline" tabIndex={0} className={`section-timeline flex w-full gap-2 overflow-x-auto pb-1 ${sections.length > 6 ? 'many-sections' : ''}`}>
       {sections.map((section, index) => {
         const isCurrent = index === currentIndex
         const isNext = index === currentIndex + 1
         return (
           <div
             key={section.id}
+            role="listitem"
+            aria-current={isCurrent ? 'step' : undefined}
+            title={section.name}
+            data-next={isNext && approaching ? 'true' : undefined}
             className={`flex min-w-0 flex-1 flex-col rounded-xl px-2 py-2.5 ${
               isCurrent
                 ? 'bg-accent-900/35'
@@ -56,7 +70,7 @@ export function SectionTimeline({
                 isCurrent || isNext ? 'text-[13px] text-neutral-400' : 'text-[11px] text-neutral-500'
               }`}
             >
-              {formatAllocation(section.durationSec)}
+              {isCurrent ? 'Now · ' : isNext ? 'Next · ' : ''}{formatAllocation(section.durationSec)}
             </span>
           </div>
         )

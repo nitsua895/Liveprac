@@ -73,10 +73,10 @@ export function LiveSession() {
   const section = activeSession ? activeSession.sections[activeSession.currentSectionIndex] : undefined
   const nextSection = activeSession ? activeSession.sections[activeSession.currentSectionIndex + 1] : undefined
 
-  const effectiveNow = activeSession?.paused && activeSession.pausedAt ? activeSession.pausedAt : now
+  const sectionNow = activeSession?.paused && activeSession.pausedAt ? activeSession.pausedAt : now
   const sectionRemainingSec =
     activeSession && section
-      ? section.durationSec - (effectiveNow - activeSession.sectionStartedAt) / 1000
+      ? section.durationSec - (sectionNow - activeSession.sectionStartedAt) / 1000
       : 0
   const warningSec = section ? Math.min(120, Math.max(60, section.durationSec * 0.25)) : 60
 
@@ -109,7 +109,17 @@ export function LiveSession() {
   }, [activeSession, section, sectionRemainingSec, warningSec, nextSection, pushAmbientCue])
 
   useEffect(() => {
-    if (!activeSession || activeSession.paused || sectionRemainingSec > 0) return
+    if (!activeSession) return
+    const fixedTotal = activeSession.plannedDurationSec
+      ?? activeSession.sections.reduce((sum, item) => sum + item.durationSec, 0)
+    const appointmentRemaining = activeSession.started
+      ? fixedTotal - (now - activeSession.startedAt) / 1000
+      : fixedTotal
+    if (activeSession.started && appointmentRemaining <= 0) {
+      completeSession()
+      return
+    }
+    if (activeSession.paused || sectionRemainingSec > 0) return
     if (cuedSectionRef.current === activeSession.currentSectionIndex) return
     cuedSectionRef.current = activeSession.currentSectionIndex
     if (nextSection) {
@@ -120,7 +130,7 @@ export function LiveSession() {
       // screen instead of letting it count into overtime unattended.
       completeSession()
     }
-  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, completeSession])
+  }, [activeSession, now, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, completeSession])
 
   // Safety net: never leave the chime playing after leaving this screen.
   useEffect(() => () => stopSessionEndChime(), [])
@@ -161,12 +171,16 @@ export function LiveSession() {
 
   const client = clients.find((c) => c.id === activeSession.clientId)
   const totalDuration = activeSession.plannedDurationSec ?? sessionDurationSec(template.sections)
-  const sessionRemainingSec = totalDuration - (effectiveNow - activeSession.startedAt) / 1000
+  // The appointment clock is the source of truth. A section can pause, but
+  // once Begin is pressed the agreed end time never moves.
+  const sessionRemainingSec = activeSession.started
+    ? totalDuration - (now - activeSession.startedAt) / 1000
+    : totalDuration
   const displayedSectionRemainingSec = Math.min(sectionRemainingSec, sessionRemainingSec)
   const closeToNext = activeSession.paused || displayedSectionRemainingSec <= warningSec
   const availableFollowingSec = activeSession.sections
     .slice(activeSession.currentSectionIndex + 1)
-    .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec - 60), 0)
+    .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec), 0)
 
   const currentSectionEvents = events.filter(
     (e) => e.sessionInstanceId === activeSession.instanceId && e.sectionId === section.id,
@@ -230,7 +244,6 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </h1>
-        <p className="max-w-sm text-sm leading-relaxed text-neutral-500">Take a breath. The session has been saved.</p>
         {lovedCount > 0 && (
           <p className="text-neutral-500">
             {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
@@ -342,40 +355,43 @@ export function LiveSession() {
               {!activeSession.started ? section.name : (nextSection?.name ?? 'Finish session')}
             </p>
           </div>
-
           <button
             type="button"
             onClick={() => {
+              if (!activeSession.started || activeSession.paused) {
+                togglePause()
+                return
+              }
               if (nextSection) advanceSection()
               else if (window.confirm('Finish this session? Recorded feedback will be kept.')) {
                 completeSession()
               }
             }}
-            disabled={Boolean(nextSection) && activeSession.paused}
             className="session-next rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
           >
-            {nextSection ? 'Next Section' : 'Finish Session'}
+            {!activeSession.started ? 'Begin Session' : activeSession.paused ? 'Resume Session' : nextSection ? 'Next Section' : 'Finish Session'}
           </button>
           <button
             type="button"
             onClick={togglePause}
+            disabled={!activeSession.started || activeSession.paused}
             className="session-pause rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
           >
-            {!activeSession.started ? 'Begin Session' : activeSession.paused ? 'Resume' : 'Pause'}
+            {activeSession.started && activeSession.paused ? 'Paused' : 'Pause'}
           </button>
           <button
             type="button"
             onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-            disabled={availableFollowingSec <= 0}
+            disabled={!activeSession.started || availableFollowingSec <= 0}
             className="session-extend rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
-            +2 min from next
+            +2 min here
           </button>
           <button
             type="button"
             onClick={() => setShowMore((v) => !v)}
             aria-expanded={showMore}
-            className="session-more text-sm text-neutral-600"
+            className="session-more text-sm text-neutral-400"
           >
             {showMore ? 'Less' : 'More'}
           </button>
@@ -386,6 +402,7 @@ export function LiveSession() {
         <SectionTimeline
           sections={activeSession.sections}
           currentIndex={activeSession.currentSectionIndex}
+          approaching={Boolean(activeSession.started && !activeSession.paused && displayedSectionRemainingSec <= warningSec)}
         />
         <button
           type="button"
@@ -403,6 +420,10 @@ export function LiveSession() {
 
       {showMore && (
         <div className="session-more-panel flex flex-wrap justify-center gap-3">
+          <button type="button" className="secondary-action" onClick={() => setShowMore(false)}>Close</button>
+          <button type="button" className="secondary-action text-red-300" onClick={() => {
+            if (window.confirm('End this session? Recorded feedback will be kept.')) completeSession()
+          }}>End session</button>
           <button
             type="button"
             onClick={goToPreviousSection}
@@ -424,7 +445,6 @@ function SectionNotes({ notes }: { notes: string }) {
     .split(/\n+/)
     .map((item) => item.trim().replace(/^[-•]\s*/, ''))
     .filter(Boolean)
-    .slice(0, 4)
 
   if (!items.length) return null
 
