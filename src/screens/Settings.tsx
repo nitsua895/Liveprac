@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as spotify from '../lib/spotify'
 import { exportData, resetAllData } from '../lib/backup'
 import { hexToHsl, hslToHex } from '../lib/color'
-import { getCueSoundMode, previewCueSound, previewTone, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
+import { CUE_SOUND_MODE_EVENT, getCueSoundMode, previewCueSound, previewTone, setCueSoundMode, type CueSoundMode } from '../lib/cueSound'
 import { playSessionEndChime, stopSessionEndChime } from '../lib/chime'
 import {
   SOUND_SLOTS,
@@ -269,15 +269,26 @@ function SoundRow({ slot }: { slot: SoundSlot }) {
 }
 
 function SoundsCard() {
+  const [mode, setMode] = useState<CueSoundMode>(() => getCueSoundMode())
+  useEffect(() => {
+    const sync = () => setMode(getCueSoundMode())
+    window.addEventListener(CUE_SOUND_MODE_EVENT, sync)
+    return () => window.removeEventListener(CUE_SOUND_MODE_EVENT, sync)
+  }, [])
+  const visibleSlots: SoundSlot[] = mode === 'off'
+    ? ['sessionEnd']
+    : mode === 'transitions'
+      ? ['next', 'sessionEnd']
+      : SOUND_SLOTS
   return (
     <div className="surface-card p-5">
       <p className="mb-1 text-neutral-100">Sounds</p>
       <p className="mb-4 text-sm text-neutral-500">
-        Swap in your own MP3 or WAV per cue, and set its volume independently. Preview plays it at
-        that exact volume right now, regardless of the cue-sound mode above.
+        These are the sounds that can play in the selected cue mode. Upload an MP3 or WAV and set
+        its volume independently; previews always play at the saved level.
       </p>
       <div className="flex flex-col gap-3">
-        {SOUND_SLOTS.map((slot) => (
+        {visibleSlots.map((slot) => (
           <SoundRow key={slot} slot={slot} />
         ))}
       </div>
@@ -599,3 +610,4 @@ export function Settings() {
     </div>
   )
 }
+
