@@ -851,15 +851,13 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "notes notes"
-      "next pause"
-      "extend more";
+      "next next"
+      "extend extend";
     gap: 0.6rem;
   }
   .up-next-card { grid-area: upnext; }
   .session-next { grid-area: next; }
-  .session-pause { grid-area: pause; }
   .session-extend { grid-area: extend; }
-  .session-more { grid-area: more; }
   /* A horizontal scroll strip hides most of the plan behind a swipe on a
      narrow phone. Wrapping into rows keeps every section on screen at once,
      and a 3-column grid fills the same width the strip used to scroll
@@ -1026,8 +1024,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     grid-template-areas:
       "notes notes"
       "next next"
-      "pause extend"
-      "more more";
+      "extend extend";
     gap: 0.35rem;
   }
   .up-next-card {
@@ -1049,19 +1046,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     padding: 0.4rem 1rem;
     font-size: 1rem;
   }
-  .session-pause {
-    grid-area: pause;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.95rem;
-  }
   .session-extend {
     grid-area: extend;
     padding: 0.35rem 0.65rem;
     font-size: 0.8rem;
-  }
-  .session-more {
-    grid-area: more;
-    min-height: 32px;
   }
   .section-timeline {
     padding-bottom: 0;

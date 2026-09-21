@@ -40,7 +40,6 @@ export function LiveSession() {
     events,
     advanceSection,
     goToPreviousSection,
-    togglePause,
     endSession,
     extendCurrentSection,
     updateRuntimeSections,
@@ -50,7 +49,7 @@ export function LiveSession() {
   const navigate = useNavigate()
   const [now, setNow] = useState(() => Date.now())
   const [editingPlan, setEditingPlan] = useState(false)
-  const [showMore, setShowMore] = useState(false)
+  const [showController, setShowController] = useState(false)
   const [sessionEnded, setSessionEnded] = useState(
     () => Boolean(activeSession && completedSessionId() === activeSession.instanceId),
   )
@@ -62,8 +61,7 @@ export function LiveSession() {
     setSessionEnded(true)
     rememberCompletedSession(activeSession.instanceId)
     playSessionEndChime()
-    if (!activeSession.paused) togglePause()
-  }, [activeSession, togglePause])
+  }, [activeSession])
   useEffect(() => {
     cuedSectionRef.current = null
     warnedSectionRef.current = null
@@ -73,7 +71,7 @@ export function LiveSession() {
   const section = activeSession ? activeSession.sections[activeSession.currentSectionIndex] : undefined
   const nextSection = activeSession ? activeSession.sections[activeSession.currentSectionIndex + 1] : undefined
 
-  const sectionNow = activeSession?.paused && activeSession.pausedAt ? activeSession.pausedAt : now
+  const sectionNow = now
   const sectionRemainingSec =
     activeSession && section
       ? section.durationSec - (sectionNow - activeSession.sectionStartedAt) / 1000
@@ -97,7 +95,7 @@ export function LiveSession() {
 
   // Heads-up while there's still time to finish the stroke, not just at zero.
   useEffect(() => {
-    if (!activeSession || activeSession.paused || !section) return
+    if (!activeSession || !section) return
     if (sectionRemainingSec > warningSec || sectionRemainingSec <= 0) return
     if (warnedSectionRef.current === activeSession.currentSectionIndex) return
     warnedSectionRef.current = activeSession.currentSectionIndex
@@ -119,7 +117,7 @@ export function LiveSession() {
       completeSession()
       return
     }
-    if (activeSession.paused || sectionRemainingSec > 0) return
+    if (sectionRemainingSec > 0) return
     if (cuedSectionRef.current === activeSession.currentSectionIndex) return
     cuedSectionRef.current = activeSession.currentSectionIndex
     if (nextSection) {
@@ -224,7 +222,7 @@ export function LiveSession() {
           <button
             type="button"
             onClick={() => setEditingPlan(false)}
-            className="rounded-full bg-accent-500 px-5 py-2 text-sm font-medium text-neutral-950"
+            className="rounded-full bg-accent-500 px-5 py-2 text-sm font-medium text-white"
           >
             Done
           </button>
@@ -271,20 +269,35 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </p>
-        <button
-          type="button"
-          aria-label="End session"
-          title="End session"
-          onClick={() => {
-            if (!window.confirm('End this session? Recorded feedback will be kept.')) return
-            completeSession()
-          }}
-          className="session-end-x flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-red-900/50 text-red-400/70 transition-colors hover:border-red-500/60 hover:text-red-300"
-        >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">
-            <path d="M5 5l14 14M19 5 5 19" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label="Controller controls"
+            title="Controller controls"
+            aria-expanded={showController}
+            onClick={() => setShowController((value) => !value)}
+            className="session-controller flex h-11 w-11 items-center justify-center rounded-full border border-neutral-700 text-neutral-400 transition-colors hover:border-accent-500/70 hover:text-accent-200"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+              <path d="M7.5 8h9a3.5 3.5 0 0 1 3.4 4.35l-.9 3.6a2 2 0 0 1-3.65.55l-1.1-1.7h-4.5l-1.1 1.7a2 2 0 0 1-3.65-.55l-.9-3.6A3.5 3.5 0 0 1 7.5 8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+              <path d="M8 11.5v3M6.5 13h3M15.5 12.2h.01M17.5 14.2h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label="End session"
+            title="End session"
+            onClick={() => {
+              if (!window.confirm('End this session? Recorded feedback will be kept.')) return
+              completeSession()
+            }}
+            className="session-end-x flex h-11 w-11 items-center justify-center rounded-full border border-red-900/50 text-red-400/70 transition-colors hover:border-red-500/60 hover:text-red-300"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">
+              <path d="M5 5l14 14M19 5 5 19" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <div
@@ -335,17 +348,12 @@ export function LiveSession() {
           </div>
         </div>
 
-        {/* Controls live beside the dial: the two used mid-session are big and
-            near the timer, the rest are tucked behind "More". */}
+        {/* Keep the two actions used during treatment beside the timer. */}
         <div className="session-controls flex flex-col items-stretch gap-3">
           {section.notes?.trim() && <SectionNotes notes={section.notes} />}
           <button
             type="button"
             onClick={() => {
-              if (!activeSession.started || activeSession.paused) {
-                togglePause()
-                return
-              }
               if (nextSection) advanceSection()
               else if (window.confirm('Finish this session? Recorded feedback will be kept.')) {
                 completeSession()
@@ -353,31 +361,15 @@ export function LiveSession() {
             }}
             className="session-next rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
           >
-            {!activeSession.started ? 'Begin Session' : activeSession.paused ? 'Resume Session' : nextSection ? 'Next Section' : 'Finish Session'}
-          </button>
-          <button
-            type="button"
-            onClick={togglePause}
-            disabled={!activeSession.started || activeSession.paused}
-            className="session-pause rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
-          >
-            {activeSession.started && activeSession.paused ? 'Paused' : 'Pause'}
+            {nextSection ? 'Next Section' : 'Finish Session'}
           </button>
           <button
             type="button"
             onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-            disabled={!activeSession.started || availableFollowingSec <= 0}
+            disabled={availableFollowingSec <= 0}
             className="session-extend rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
             +2 min here
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowMore((v) => !v)}
-            aria-expanded={showMore}
-            className="session-more text-sm text-neutral-400"
-          >
-            {showMore ? 'Less' : 'More'}
           </button>
         </div>
       </div>
@@ -386,7 +378,7 @@ export function LiveSession() {
         <SectionTimeline
           sections={activeSession.sections}
           currentIndex={activeSession.currentSectionIndex}
-          approaching={Boolean(activeSession.started && !activeSession.paused && displayedSectionRemainingSec <= warningSec)}
+          approaching={Boolean(activeSession.started && displayedSectionRemainingSec <= warningSec)}
         />
         <button
           type="button"
@@ -402,12 +394,9 @@ export function LiveSession() {
         </button>
       </div>
 
-      {showMore && (
+      {showController && (
         <div className="session-more-panel flex flex-wrap justify-center gap-3">
-          <button type="button" className="secondary-action" onClick={() => setShowMore(false)}>Close</button>
-          <button type="button" className="secondary-action text-red-300" onClick={() => {
-            if (window.confirm('End this session? Recorded feedback will be kept.')) completeSession()
-          }}>End session</button>
+          <button type="button" className="secondary-action" onClick={() => setShowController(false)}>Close</button>
           <button
             type="button"
             onClick={goToPreviousSection}
