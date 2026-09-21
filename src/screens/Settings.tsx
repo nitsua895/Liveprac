@@ -573,26 +573,27 @@ export function Settings() {
         <h1 className="page-title">Settings</h1>
       </header>
 
-      <AccentPicker />
-
-      <NotificationCuesCard />
-
-      <CueSoundCard />
-
-      <SoundsCard />
-
-      <BluetoothRemoteCard />
-      <GameControllerCard />
-      <GoogleCalendarCard />
-      <SpotifyCard />
+      <section className="grid gap-4" aria-labelledby="experience-heading">
+        <h2 id="experience-heading" className="section-label">Session experience</h2>
+        <CueSoundCard />
+        <HomeScreenCard />
+      </section>
+      <details className="settings-group">
+        <summary>Appearance & notification customization</summary>
+        <div className="grid gap-4 pt-3"><AccentPicker /><NotificationCuesCard /><SoundsCard /></div>
+      </details>
+      <details className="settings-group">
+        <summary>Remotes & connections</summary>
+        <div className="grid gap-4 pt-3">
+          <BluetoothRemoteCard /><GameControllerCard /><GoogleCalendarCard /><SpotifyCard />
       <IntegrationCard
         title="ClinicSense / MassageBook"
         status="No public API"
         detail="Neither tool exposes a public integration API. Use 'Copy note for CRM' in the Client Log to paste session summaries into their notes field by hand."
       />
-
-      <HomeScreenCard />
-
+        </div>
+      </details>
+      <h2 className="section-label">Backup & data</h2>
       <DataCard />
 
       <p className="text-center text-xs text-neutral-600">build {__BUILD_ID__}</p>

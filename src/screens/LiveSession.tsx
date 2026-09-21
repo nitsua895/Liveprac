@@ -163,7 +163,6 @@ export function LiveSession() {
   const totalDuration = activeSession.plannedDurationSec ?? sessionDurationSec(template.sections)
   const sessionRemainingSec = totalDuration - (effectiveNow - activeSession.startedAt) / 1000
   const displayedSectionRemainingSec = Math.min(sectionRemainingSec, sessionRemainingSec)
-  const showNext = activeSession.paused || displayedSectionRemainingSec <= warningSec
   const availableFollowingSec = activeSession.sections
     .slice(activeSession.currentSectionIndex + 1)
     .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec - 60), 0)
@@ -230,7 +229,6 @@ export function LiveSession() {
           {template.name}
           {client ? ` · ${client.name}` : ''}
         </h1>
-        <p className="max-w-sm text-sm leading-relaxed text-neutral-500">Take a breath. The session has been saved.</p>
         {lovedCount > 0 && (
           <p className="text-neutral-500">
             {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
@@ -327,40 +325,34 @@ export function LiveSession() {
             near the timer, the rest are tucked behind "More". */}
         <div className="session-controls flex flex-col items-stretch gap-3">
           {section.notes?.trim() && <SectionNotes notes={section.notes} />}
-          {showNext && (
-            <div className="up-next-card rounded-xl border border-neutral-800 p-4">
-              <p className="text-sm text-neutral-400">
-                {!activeSession.started ? 'Ready when you are' : activeSession.paused ? 'Paused' : 'Coming up'}
-              </p>
-              <p className="mt-1 text-2xl font-medium text-accent-200">
-                {!activeSession.started ? section.name : (nextSection?.name ?? 'Finish session')}
-              </p>
-            </div>
-          )}
           <button
             type="button"
             onClick={() => {
+              if (!activeSession.started || activeSession.paused) {
+                togglePause()
+                return
+              }
               if (nextSection) advanceSection()
               else if (window.confirm('Finish this session? Recorded feedback will be kept.')) {
                 completeSession()
               }
             }}
-            disabled={Boolean(nextSection) && activeSession.paused}
             className="session-next rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
           >
-            {nextSection ? 'Next Section' : 'Finish Session'}
+            {!activeSession.started ? 'Begin Session' : activeSession.paused ? 'Resume Session' : nextSection ? 'Next Section' : 'Finish Session'}
           </button>
           <button
             type="button"
             onClick={togglePause}
+            disabled={!activeSession.started || activeSession.paused}
             className="session-pause rounded-full border border-neutral-700 px-7 py-3 text-lg text-neutral-300"
           >
-            {!activeSession.started ? 'Begin Session' : activeSession.paused ? 'Resume' : 'Pause'}
+            {activeSession.started && activeSession.paused ? 'Paused' : 'Pause'}
           </button>
           <button
             type="button"
             onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-            disabled={availableFollowingSec <= 0}
+            disabled={!activeSession.started || availableFollowingSec <= 0}
             className="session-extend rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
             +2 min from next
@@ -369,7 +361,7 @@ export function LiveSession() {
             type="button"
             onClick={() => setShowMore((v) => !v)}
             aria-expanded={showMore}
-            className="session-more text-sm text-neutral-600"
+            className="session-more text-sm text-neutral-400"
           >
             {showMore ? 'Less' : 'More'}
           </button>
@@ -380,6 +372,7 @@ export function LiveSession() {
         <SectionTimeline
           sections={activeSession.sections}
           currentIndex={activeSession.currentSectionIndex}
+          approaching={Boolean(activeSession.started && !activeSession.paused && displayedSectionRemainingSec <= warningSec)}
         />
         <button
           type="button"
@@ -397,6 +390,10 @@ export function LiveSession() {
 
       {showMore && (
         <div className="session-more-panel flex flex-wrap justify-center gap-3">
+          <button type="button" className="secondary-action" onClick={() => setShowMore(false)}>Close</button>
+          <button type="button" className="secondary-action text-red-300" onClick={() => {
+            if (window.confirm('End this session? Recorded feedback will be kept.')) completeSession()
+          }}>End session</button>
           <button
             type="button"
             onClick={goToPreviousSection}
@@ -418,7 +415,6 @@ function SectionNotes({ notes }: { notes: string }) {
     .split(/\n+/)
     .map((item) => item.trim().replace(/^[-•]\s*/, ''))
     .filter(Boolean)
-    .slice(0, 4)
 
   if (!items.length) return null
 

@@ -23,13 +23,6 @@ export function HubShell() {
   // release that lock after navigation/reload while the refreshed manifest
   // propagates through Android's installed-web-app cache.
   useEffect(() => {
-    if (!inSession && Math.min(window.innerWidth, window.innerHeight) < 600) {
-      void screen.orientation.lock('portrait').catch(() => {
-        // A normal browser tab may require fullscreen; the visible Portrait
-        // control remains available for the installed app.
-      })
-      return
-    }
     try {
       screen.orientation?.unlock()
     } catch {

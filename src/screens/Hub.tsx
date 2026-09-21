@@ -34,7 +34,7 @@ export function Hub() {
         <h2 className="section-label">Start a session</h2>
         {templates.length === 0 && (
           <p className="empty-state">
-            No routines yet. Create one in Build.
+            No routines yet. Create one in Routines.
           </p>
         )}
         <div className="grid gap-3 sm:grid-cols-2">
