@@ -13,7 +13,9 @@ import type {
   PreferenceEventType,
   SectionTemplate,
   SessionNote,
+  SessionRecord,
   SessionTemplate,
+  ClientOuttake,
 } from '../types'
 
 function remainingAppointmentSec(session: ActiveSession, now: number) {
@@ -74,14 +76,15 @@ interface AppState {
   cueBump: number
   calendarLinks: CalendarLink[]
   sessionNotes: SessionNote[]
+  sessionRecords: SessionRecord[]
 
   saveTemplate: (template: SessionTemplate) => void
   deleteTemplate: (templateId: string) => void
   addClient: (name: string) => ClientProfile
-  updateClient: (clientId: string, changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference'>>) => void
+  updateClient: (clientId: string, changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference' | 'communicationPreference' | 'statedPressure' | 'intakeCompletedAt'>>) => void
   setClientLastTemplate: (clientId: string, templateId: string) => void
   deleteClient: (clientId: string) => void
-  startSession: (templateId: string, clientId: string | null) => void
+  startSession: (templateId: string, clientId: string | null, sectionsOverride?: SectionTemplate[]) => void
   advanceSection: () => void
   goToPreviousSection: () => void
   togglePause: () => void
@@ -95,6 +98,9 @@ interface AppState {
   linkCalendarEvent: (googleEventId: string, clientId: string, templateId?: string) => void
   unlinkCalendarEvent: (googleEventId: string) => void
   setSessionNote: (sessionInstanceId: string, text: string) => void
+  recordActiveSessionCompletion: () => void
+  setSessionOuttake: (sessionInstanceId: string, outtake: ClientOuttake) => void
+  saveActiveSessionAsClientPlan: () => void
 }
 
 const AppStateContext = createContext<AppState | null>(null)
@@ -128,6 +134,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     loadJSON('calendarLinks', []),
   )
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>(() => loadJSON('sessionNotes', []))
+  const [sessionRecords, setSessionRecords] = useState<SessionRecord[]>(() => loadJSON('sessionRecords', []))
   /** Increments on every signal, including repeats folded into an existing cue,
    *  so the glow can re-flash even when no new cue was added. */
   const [cueBump, setCueBump] = useState(0)
@@ -154,6 +161,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveJSON('activeSession', activeSession), [activeSession])
   useEffect(() => saveJSON('calendarLinks', calendarLinks), [calendarLinks])
   useEffect(() => saveJSON('sessionNotes', sessionNotes), [sessionNotes])
+  useEffect(() => saveJSON('sessionRecords', sessionRecords), [sessionRecords])
 
   function saveTemplate(template: SessionTemplate) {
     setTemplates((prev) => {
@@ -183,7 +191,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   function updateClient(
     clientId: string,
-    changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference'>>,
+    changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference' | 'communicationPreference' | 'statedPressure' | 'intakeCompletedAt'>>,
   ) {
     setClients((prev) => prev.map((client) => (
       client.id === clientId ? { ...client, ...changes } : client
@@ -197,20 +205,23 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setClients((prev) => prev.filter((c) => c.id !== clientId))
     setEvents((prev) => prev.filter((e) => e.clientId !== clientId))
     setSessionNotes((prev) => prev.filter((n) => !orphanedInstanceIds.has(n.sessionInstanceId)))
+    setSessionRecords((prev) => prev.filter((record) => record.clientId !== clientId))
     setCalendarLinks((prev) => prev.filter((l) => l.clientId !== clientId))
   }
 
-  function startSession(templateId: string, clientId: string | null) {
+  function startSession(templateId: string, clientId: string | null, sectionsOverride?: SectionTemplate[]) {
     const template = templates.find((t) => t.id === templateId)
     if (!template) return
     const now = Date.now()
+    const sourceSections = sectionsOverride ?? template.sections
     setActiveSession({
       instanceId: newSectionId(),
       templateId,
       clientId,
-      sections: template.sections.map((s) => ({ ...s })),
+      sections: sourceSections.map((s) => ({ ...s })),
+      plannedSections: sourceSections.map((s) => ({ ...s })),
       startedAt: now,
-      plannedDurationSec: template.sections.reduce((sum, section) => sum + section.durationSec, 0),
+      plannedDurationSec: sourceSections.reduce((sum, section) => sum + section.durationSec, 0),
       currentSectionIndex: 0,
       sectionStartedAt: now,
       // A session starts as soon as the client is selected. Its end time is
@@ -220,9 +231,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       started: true,
     })
     setAmbientCues([])
-    // Whatever routine actually got used — updates every time, since it
-    // commonly changes (50 minutes one week, 30 the next).
-    if (clientId) setClientLastTemplate(clientId, templateId)
+    // The first routine becomes a sensible default. Later one-off choices do
+    // not silently rewrite the client's future plan.
+    if (clientId && !clients.find((client) => client.id === clientId)?.lastTemplateId) {
+      setClientLastTemplate(clientId, templateId)
+    }
   }
 
   function advanceSection() {
@@ -355,6 +368,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }
 
   function endSession() {
+    recordActiveSessionCompletion()
     setActiveSession(null)
     setAmbientCues([])
   }
@@ -435,6 +449,50 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  function recordActiveSessionCompletion() {
+    if (!activeSession) return
+    const template = templates.find((item) => item.id === activeSession.templateId)
+    const completedAt = Date.now()
+    const plannedDurationSec = activeSession.plannedDurationSec
+      ?? activeSession.sections.reduce((sum, section) => sum + section.durationSec, 0)
+    const record: SessionRecord = {
+      id: activeSession.instanceId,
+      clientId: activeSession.clientId,
+      templateId: activeSession.templateId,
+      templateName: template?.name ?? 'Session',
+      startedAt: activeSession.startedAt,
+      completedAt,
+      plannedDurationSec,
+      plannedSections: (activeSession.plannedSections ?? activeSession.sections).map((section) => ({ ...section })),
+      actualSections: activeSession.sections.map((section) => ({ ...section })),
+    }
+    setSessionRecords((prev) => {
+      const existing = prev.find((item) => item.id === record.id)
+      if (existing) return prev.map((item) => item.id === record.id ? { ...record, completedAt: existing.completedAt, outtake: existing.outtake } : item)
+      return [...prev, record]
+    })
+  }
+
+  function setSessionOuttake(sessionInstanceId: string, outtake: ClientOuttake) {
+    setSessionRecords((prev) => prev.map((record) => (
+      record.id === sessionInstanceId ? { ...record, outtake } : record
+    )))
+  }
+
+  function saveActiveSessionAsClientPlan() {
+    if (!activeSession?.clientId) return
+    setClients((prev) => prev.map((client) => client.id === activeSession.clientId ? {
+      ...client,
+      lastTemplateId: activeSession.templateId,
+      plan: {
+        name: `${client.name} plan`,
+        sourceTemplateId: activeSession.templateId,
+        sections: activeSession.sections.map((section) => ({ ...section })),
+        updatedAt: Date.now(),
+      },
+    } : client))
+  }
+
   const value = useMemo<AppState>(
     () => ({
       templates,
@@ -445,6 +503,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       cueBump,
       calendarLinks,
       sessionNotes,
+      sessionRecords,
       saveTemplate,
       deleteTemplate,
       addClient,
@@ -465,8 +524,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       linkCalendarEvent,
       unlinkCalendarEvent,
       setSessionNote,
+      recordActiveSessionCompletion,
+      setSessionOuttake,
+      saveActiveSessionAsClientPlan,
     }),
-    [templates, clients, events, activeSession, ambientCues, cueBump, calendarLinks, sessionNotes],
+    [templates, clients, events, activeSession, ambientCues, cueBump, calendarLinks, sessionNotes, sessionRecords],
   )
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

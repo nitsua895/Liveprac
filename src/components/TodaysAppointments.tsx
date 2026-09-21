@@ -15,7 +15,6 @@ export function TodaysAppointments() {
     calendarLinks,
     linkCalendarEvent,
     unlinkCalendarEvent,
-    startSession,
   } = useAppState()
   const navigate = useNavigate()
   const [connected, setConnected] = useState(() => googleCalendar.isConnected())
@@ -53,9 +52,9 @@ export function TodaysAppointments() {
 
   if (!connected) return null
 
-  function beginSession(templateId: string, clientId: string | null) {
-    startSession(templateId, clientId)
-    navigate('/session')
+  function prepareSession(templateId: string, clientId: string) {
+    const params = new URLSearchParams({ template: templateId, client: clientId })
+    navigate(`/?${params.toString()}`)
   }
 
   return (
@@ -117,14 +116,19 @@ export function TodaysAppointments() {
                     <button
                       type="button"
                       onClick={() => setPickingRoutineFor(event.id)}
-                      className={`text-sm ${template ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'}`}
+                      aria-label="Edit today's routine"
+                      title="Edit today"
+                      className={`appointment-edit ${template ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'}`}
                     >
-                      {template ? template.name : 'Choose routine'}
+                      <span>{template ? template.name : 'Choose routine'}</span>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">
+                        <path d="M4 20h4.1L19 9.1a2.1 2.1 0 0 0 0-3L17.9 5a2.1 2.1 0 0 0-3 0L4 15.9V20Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                      </svg>
                     </button>
                     {template && (
                       <button
                         type="button"
-                        onClick={() => beginSession(template.id, linkedClient.id)}
+                        onClick={() => prepareSession(template.id, linkedClient.id)}
                         className="rounded-full bg-accent-500 px-4 py-1.5 text-sm font-medium text-white"
                       >
                         Start
@@ -278,8 +282,8 @@ function RoutinePickerModal({
         <h3 id="routine-picker-title" className="mb-1 text-lg text-neutral-100">Which routine?</h3>
         <p className="mb-4 truncate text-sm text-neutral-500">{eventSummary}</p>
         <p className="mb-3 text-xs text-neutral-600">
-          Sets the routine for this appointment. Future appointments with this client default to
-          whichever routine they most recently ran, until you pick a different one for a specific day.
+          Edits today's appointment only. The client's future plan changes only when you explicitly
+          save it after a session.
         </p>
         <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
           {templates.length === 0 && (

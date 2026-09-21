@@ -28,15 +28,22 @@ export interface ClientProfile {
   name: string
   notes: string
   createdAt: number
-  /** Whatever routine they most recently ran — updates automatically every
-   *  time a session starts for them, since it commonly changes week to week
-   *  (e.g. usually 50 minutes, occasionally 30). Used to resolve a linked
-   *  appointment that has no per-appointment override of its own. */
+  /** Explicit default routine. Kept under the legacy key for stored-data compatibility. */
   lastTemplateId?: string
   /** Stable, glanceable context shown before every session. */
   focusAreas?: string
   contraindications?: string
   temperaturePreference?: 'cooler' | 'neutral' | 'warmer'
+  communicationPreference?: 'quiet' | 'check_ins' | 'collaborative'
+  statedPressure?: Partial<Record<BodyZone, 'lighter' | 'moderate' | 'firmer'>>
+  intakeCompletedAt?: number
+  /** A client-specific plan is a durable copy, never a live link to its base routine. */
+  plan?: {
+    name: string
+    sourceTemplateId: string
+    sections: SectionTemplate[]
+    updatedAt: number
+  }
 }
 
 export type PreferenceEventType = 'pressure_up' | 'pressure_down' | 'loved' | 'flagged'
@@ -61,6 +68,8 @@ export interface ActiveSession {
   clientId: string | null
   /** Snapshot of the template's sections when the session started — edits here (Edit Plan, "+time") apply only to this run. */
   sections: SectionTemplate[]
+  /** Immutable pre-session allocation for planned-versus-actual summaries. */
+  plannedSections?: SectionTemplate[]
   startedAt: number
   /** Fixed appointment length. Section edits and pauses redistribute within it. */
   plannedDurationSec?: number
@@ -104,4 +113,23 @@ export interface CalendarLink {
 export interface SessionNote {
   sessionInstanceId: string
   text: string
+}
+
+export interface ClientOuttake {
+  pressure: 'lighter' | 'right' | 'firmer' | null
+  highlight: string
+  nextFocus: string
+}
+
+export interface SessionRecord {
+  id: string
+  clientId: string | null
+  templateId: string
+  templateName: string
+  startedAt: number
+  completedAt: number
+  plannedDurationSec: number
+  plannedSections: SectionTemplate[]
+  actualSections: SectionTemplate[]
+  outtake?: ClientOuttake
 }

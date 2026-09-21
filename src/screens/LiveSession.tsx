@@ -10,7 +10,9 @@ import { startMappedGamepadBridge } from '../lib/gamepadMapping'
 import { remoteController } from '../lib/remote'
 import { formatClock, sessionDurationSec } from '../lib/time'
 import { acquireWakeLock, reacquireOnVisible, releaseWakeLock } from '../lib/wakeLock'
+import { getPractitionerPin, setPractitionerPin, verifyPractitionerPin } from '../lib/practitionerPin'
 import { useAppState } from '../state/AppStateContext'
+import type { ClientOuttake } from '../types'
 
 const QUICK_ADJUST_SEC = 60
 const COMPLETED_SESSION_KEY = 'liveprac:v1:completedSession'
@@ -44,6 +46,11 @@ export function LiveSession() {
     updateRuntimeSections,
     logPreferenceEvent,
     pushAmbientCue,
+    sessionNotes,
+    setSessionNote,
+    recordActiveSessionCompletion,
+    setSessionOuttake,
+    saveActiveSessionAsClientPlan,
   } = useAppState()
   const navigate = useNavigate()
   const [now, setNow] = useState(() => Date.now())
@@ -52,15 +59,23 @@ export function LiveSession() {
   const [sessionEnded, setSessionEnded] = useState(
     () => Boolean(activeSession && completedSessionId() === activeSession.instanceId),
   )
+  const [completionView, setCompletionView] = useState<'choice' | 'setup' | 'outtake' | 'thanks' | 'unlock' | 'closeout'>('choice')
+  const [returnPin, setReturnPin] = useState('')
+  const [pinError, setPinError] = useState(false)
+  const [outtakePressure, setOuttakePressure] = useState<ClientOuttake['pressure']>(null)
+  const [outtakeHighlight, setOuttakeHighlight] = useState('')
+  const [outtakeNextFocus, setOuttakeNextFocus] = useState('')
+  const [planSaved, setPlanSaved] = useState(false)
   const cuedSectionRef = useRef<number | null>(null)
   const warnedSectionRef = useRef<number | null>(null)
 
   const completeSession = useCallback(() => {
-    if (!activeSession) return
+    if (!activeSession || sessionEnded) return
     setSessionEnded(true)
+    recordActiveSessionCompletion()
     rememberCompletedSession(activeSession.instanceId)
     playSessionEndChime()
-  }, [activeSession])
+  }, [activeSession, recordActiveSessionCompletion, sessionEnded])
   useEffect(() => {
     cuedSectionRef.current = null
     warnedSectionRef.current = null
@@ -237,6 +252,107 @@ export function LiveSession() {
   if (sessionEnded) {
     const sessionEvents = events.filter((e) => e.sessionInstanceId === activeSession.instanceId)
     const lovedCount = sessionEvents.filter((e) => e.type === 'loved').length
+    const pressureNet = sessionEvents.reduce((sum, event) => event.type === 'pressure_up' ? sum + event.magnitude : event.type === 'pressure_down' ? sum - event.magnitude : sum, 0)
+    const note = sessionNotes.find((item) => item.sessionInstanceId === activeSession.instanceId)?.text ?? ''
+
+    function finishAndReturn() {
+      stopSessionEndChime()
+      rememberCompletedSession(null)
+      endSession()
+      navigate('/')
+    }
+
+    if (completionView === 'setup') {
+      return (
+        <div className="session-complete px-5">
+          <div className="completion-card">
+            <p className="section-label">Before handing over the iPad</p>
+            <h1 className="mt-2 text-3xl font-light text-neutral-100">Set a practitioner PIN</h1>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-500">The client will stay inside checkout mode until this four-digit PIN is entered.</p>
+            <input value={returnPin} onChange={(event) => setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" aria-label="New practitioner PIN" placeholder="4-digit PIN" className="client-pin-input" />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setCompletionView('choice')} className="secondary-action">Back</button>
+              <button type="button" disabled={returnPin.length !== 4} onClick={() => { if (setPractitionerPin(returnPin)) { setReturnPin(''); setCompletionView('outtake') } }} className="primary-action">Enter client mode</button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (completionView === 'outtake') {
+      return (
+        <div className="session-complete px-5">
+          <div className="completion-card client-checkout-card">
+            <p className="section-label">Quick checkout</p>
+            <h1 className="mt-2 text-3xl font-light text-neutral-100">How did that feel?</h1>
+            <div className="mt-6">
+              <p className="launchpad-label">Overall pressure</p>
+              <div className="segmented">
+                {(['lighter', 'right', 'firmer'] as const).map((value) => <button key={value} type="button" onClick={() => setOuttakePressure(value)} className={outtakePressure === value ? 'selected' : ''}>{value === 'right' ? 'Just right' : value}</button>)}
+              </div>
+            </div>
+            <label className="mt-4 block">
+              <span className="launchpad-label">What felt especially helpful?</span>
+              <textarea value={outtakeHighlight} onChange={(event) => setOuttakeHighlight(event.target.value)} rows={2} className="closeout-textarea" />
+            </label>
+            <label className="mt-4 block">
+              <span className="launchpad-label">Anything to focus on next time?</span>
+              <textarea value={outtakeNextFocus} onChange={(event) => setOuttakeNextFocus(event.target.value)} rows={2} className="closeout-textarea" />
+            </label>
+            <button type="button" onClick={() => { setSessionOuttake(activeSession.instanceId, { pressure: outtakePressure, highlight: outtakeHighlight, nextFocus: outtakeNextFocus }); setCompletionView('thanks') }} className="primary-action mt-6 w-full">Submit feedback</button>
+          </div>
+        </div>
+      )
+    }
+
+    if (completionView === 'thanks' || completionView === 'unlock') {
+      return (
+        <div className="session-complete px-5">
+          <div className="completion-card text-center">
+            {completionView === 'thanks' ? (
+              <>
+                <p className="section-label">Complete</p>
+                <h1 className="mt-3 text-3xl font-light text-neutral-100">Thank you</h1>
+                <p className="mt-2 text-neutral-500">Your feedback has been saved.</p>
+                <button type="button" onClick={() => setCompletionView('unlock')} className="mt-12 text-sm text-neutral-700">Practitioner</button>
+              </>
+            ) : (
+              <>
+                <p className="section-label">Practitioner access</p>
+                <input value={returnPin} onChange={(event) => { setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
+                {pinError && <p className="mt-2 text-sm text-red-400">Incorrect PIN</p>}
+                <button type="button" disabled={returnPin.length !== 4} onClick={() => { if (verifyPractitionerPin(returnPin)) setCompletionView('closeout'); else setPinError(true) }} className="primary-action mt-5">Unlock</button>
+              </>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    if (completionView === 'closeout') {
+      return (
+        <div className="session-complete px-5">
+          <div className="completion-card practitioner-closeout">
+            <p className="section-label">Practitioner closeout</p>
+            <h1 className="mt-2 text-3xl font-light text-neutral-100">Notes for next time</h1>
+            <div className="closeout-summary">
+              <span>{template.name}</span>
+              <span>{sessionEvents.length} signals</span>
+              {pressureNet !== 0 && <span>{pressureNet > 0 ? '+' : ''}{pressureNet} pressure</span>}
+              {lovedCount > 0 && <span>{lovedCount} loved</span>}
+            </div>
+            <textarea value={note} onChange={(event) => setSessionNote(activeSession.instanceId, event.target.value)} placeholder="What should you remember before the next visit?" rows={5} className="closeout-textarea mt-4" autoFocus />
+            {client && (
+              <button type="button" onClick={() => { saveActiveSessionAsClientPlan(); setPlanSaved(true) }} className={`mt-3 w-full rounded-xl border px-4 py-3 text-sm ${planSaved ? 'border-accent-500/50 bg-accent-500/10 text-accent-200' : 'border-neutral-700 text-neutral-300'}`}>
+                {planSaved ? 'Saved as client plan' : 'Save today’s plan for next time'}
+              </button>
+            )}
+            <button type="button" onClick={finishAndReturn} className="primary-action mt-3 w-full">Finish</button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="session-complete flex flex-col items-center justify-center gap-5 px-5 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-400">Session complete</p>
@@ -249,18 +365,11 @@ export function LiveSession() {
             {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
           </p>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            stopSessionEndChime()
-            rememberCompletedSession(null)
-            endSession()
-            navigate('/')
-          }}
-          className="mt-3 rounded-full border border-neutral-700 bg-neutral-900/50 px-7 py-3 text-base text-neutral-300"
-        >
-          Return to hub
-        </button>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          {client && <button type="button" onClick={() => setCompletionView(getPractitionerPin() ? 'outtake' : 'setup')} className="secondary-action px-7 py-3 text-base">Client checkout</button>}
+          <button type="button" onClick={() => setCompletionView('closeout')} className="primary-action px-7 py-3 text-base">Practitioner closeout</button>
+        </div>
+        <button type="button" onClick={finishAndReturn} className="text-sm text-neutral-700">Skip closeout</button>
       </div>
     )
   }
