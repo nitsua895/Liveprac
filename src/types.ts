@@ -33,6 +33,10 @@ export interface ClientProfile {
    *  (e.g. usually 50 minutes, occasionally 30). Used to resolve a linked
    *  appointment that has no per-appointment override of its own. */
   lastTemplateId?: string
+  /** Stable, glanceable context shown before every session. */
+  focusAreas?: string
+  contraindications?: string
+  temperaturePreference?: 'cooler' | 'neutral' | 'warmer'
 }
 
 export type PreferenceEventType = 'pressure_up' | 'pressure_down' | 'loved' | 'flagged'
@@ -44,6 +48,8 @@ export interface PreferenceEvent {
   clientId: string | null
   sectionId: string
   sectionName: string
+  /** Snapshotted so long-term insights survive routine edits or deletion. */
+  bodyZone?: BodyZone
   type: PreferenceEventType
   /** 1 = short rotation, 2 = medium, 3 = long. Always 1 for loved/flagged. */
   magnitude: number
