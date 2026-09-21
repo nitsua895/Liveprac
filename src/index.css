@@ -587,12 +587,13 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   z-index: 50;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
   background: rgb(0 0 0 / 0.76);
   padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
   backdrop-filter: blur(5px);
+  overscroll-behavior: contain;
 }
 .modal-card {
   width: 100%;
@@ -602,9 +603,18 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   background: rgb(23 23 25 / 0.98);
   padding: clamp(1rem, 3vw, 1.5rem);
   box-shadow: 0 24px 80px rgb(0 0 0 / 0.58);
+  margin-block: auto;
+}
+.workflow-modal-card {
+  margin-block: clamp(0.25rem, 4dvh, 2rem);
 }
 .launchpad-card {
   max-width: 58rem;
+}
+.client-flow-card {
+  display: flex;
+  min-height: min(42rem, calc(100dvh - 2rem));
+  flex-direction: column;
 }
 .launchpad-header {
   display: flex;
@@ -650,6 +660,33 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   outline: 0;
 }
 .launchpad-textarea::placeholder { color: rgb(63 63 70); }
+.review-value {
+  color: rgb(212 212 216);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.review-value.empty { color: rgb(82 82 91); }
+.launchpad-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.launchpad-facts span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: rgb(212 212 216);
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+.launchpad-facts strong {
+  color: rgb(82 82 91);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .zone-insight-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -702,13 +739,85 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .client-mode-complete {
   width: 100%;
 }
+.client-flow-shell {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  flex-direction: column;
+}
+.client-flow-content {
+  width: 100%;
+  margin-block: auto;
+}
+.client-flow-content.narrow { max-width: 34rem; margin-inline: auto; }
+.flow-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1.4rem;
+}
+.flow-progress li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  border-top: 2px solid rgb(48 48 52);
+  padding-top: 0.55rem;
+  color: rgb(82 82 91);
+}
+.flow-progress li.current,
+.flow-progress li.complete { border-color: var(--color-accent-500); }
+.flow-progress li.current { color: rgb(212 212 216); }
+.flow-progress li.complete { color: rgb(113 113 122); }
+.flow-progress span {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.65rem;
+}
+.flow-progress strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.client-intake-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.flow-count {
+  flex: none;
+  border: 1px solid rgb(48 48 52);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  color: rgb(113 113 122);
+  font-size: 0.72rem;
+}
+.client-flow-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
 .client-mode-complete {
   display: flex;
-  min-height: min(32rem, 70dvh);
+  min-height: 22rem;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
 }
+.client-mode-return { margin-top: 2rem; }
 .client-pin-input {
   display: block;
   width: min(100%, 15rem);
@@ -764,6 +873,27 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   background: rgb(20 20 23 / 0.92);
   padding: clamp(1.25rem, 4vw, 2rem);
   box-shadow: 0 30px 90px rgb(0 0 0 / 0.45);
+}
+.client-handoff-card {
+  display: flex;
+  min-height: min(28rem, calc(100dvh - 2rem));
+  flex-direction: column;
+  justify-content: center;
+}
+.completion-step {
+  margin-bottom: 1rem;
+  color: rgb(82 82 91);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.completion-choice { width: min(100%, 42rem); }
+.completion-choice-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
 }
 .closeout-summary,
 .session-history-signals {
@@ -840,6 +970,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .intake-pressure-grid { grid-template-columns: minmax(0, 1fr); }
   .intake-pressure-row { grid-template-columns: minmax(5.5rem, 0.65fr) minmax(0, 1.35fr); }
   .client-facts { grid-template-columns: minmax(0, 1fr); }
+  .launchpad-facts { grid-template-columns: minmax(0, 1fr); }
+  .flow-progress strong { display: none; }
+  .flow-progress li { justify-content: center; }
+  .completion-choice-actions { flex-direction: column; }
 }
 .session-stage { grid-template-columns: minmax(0, 1fr) 17rem; max-width: 780px; margin: 0 auto; width: 100%; }
 .live-session-active body {
@@ -1064,9 +1198,15 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .session-complete {
   position: relative;
   isolation: isolate;
+  display: flex;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  overscroll-behavior: contain;
 }
 .session-complete::before {
   content: '';
@@ -1090,6 +1230,11 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   background: radial-gradient(circle, var(--color-accent-700), transparent 68%);
   filter: blur(54px);
   opacity: 0.14;
+}
+@media (max-height: 620px) {
+  .session-complete { align-items: flex-start; }
+  .client-flow-card { min-height: calc(100dvh - 1.5rem); }
+  .workflow-modal-card { margin-block: 0; }
 }
 .cue-banner {
   position: absolute;
