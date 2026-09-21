@@ -73,10 +73,10 @@ export function LiveSession() {
   const section = activeSession ? activeSession.sections[activeSession.currentSectionIndex] : undefined
   const nextSection = activeSession ? activeSession.sections[activeSession.currentSectionIndex + 1] : undefined
 
-  const effectiveNow = activeSession?.paused && activeSession.pausedAt ? activeSession.pausedAt : now
+  const sectionNow = activeSession?.paused && activeSession.pausedAt ? activeSession.pausedAt : now
   const sectionRemainingSec =
     activeSession && section
-      ? section.durationSec - (effectiveNow - activeSession.sectionStartedAt) / 1000
+      ? section.durationSec - (sectionNow - activeSession.sectionStartedAt) / 1000
       : 0
   const warningSec = section ? Math.min(120, Math.max(60, section.durationSec * 0.25)) : 60
 
@@ -109,7 +109,17 @@ export function LiveSession() {
   }, [activeSession, section, sectionRemainingSec, warningSec, nextSection, pushAmbientCue])
 
   useEffect(() => {
-    if (!activeSession || activeSession.paused || sectionRemainingSec > 0) return
+    if (!activeSession) return
+    const fixedTotal = activeSession.plannedDurationSec
+      ?? activeSession.sections.reduce((sum, item) => sum + item.durationSec, 0)
+    const appointmentRemaining = activeSession.started
+      ? fixedTotal - (now - activeSession.startedAt) / 1000
+      : fixedTotal
+    if (activeSession.started && appointmentRemaining <= 0) {
+      completeSession()
+      return
+    }
+    if (activeSession.paused || sectionRemainingSec > 0) return
     if (cuedSectionRef.current === activeSession.currentSectionIndex) return
     cuedSectionRef.current = activeSession.currentSectionIndex
     if (nextSection) {
@@ -120,7 +130,7 @@ export function LiveSession() {
       // screen instead of letting it count into overtime unattended.
       completeSession()
     }
-  }, [activeSession, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, completeSession])
+  }, [activeSession, now, sectionRemainingSec, nextSection, pushAmbientCue, advanceSection, completeSession])
 
   // Safety net: never leave the chime playing after leaving this screen.
   useEffect(() => () => stopSessionEndChime(), [])
@@ -161,11 +171,15 @@ export function LiveSession() {
 
   const client = clients.find((c) => c.id === activeSession.clientId)
   const totalDuration = activeSession.plannedDurationSec ?? sessionDurationSec(template.sections)
-  const sessionRemainingSec = totalDuration - (effectiveNow - activeSession.startedAt) / 1000
+  // The appointment clock is the source of truth. A section can pause, but
+  // once Begin is pressed the agreed end time never moves.
+  const sessionRemainingSec = activeSession.started
+    ? totalDuration - (now - activeSession.startedAt) / 1000
+    : totalDuration
   const displayedSectionRemainingSec = Math.min(sectionRemainingSec, sessionRemainingSec)
   const availableFollowingSec = activeSession.sections
     .slice(activeSession.currentSectionIndex + 1)
-    .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec - 60), 0)
+    .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec), 0)
 
   const currentSectionEvents = events.filter(
     (e) => e.sessionInstanceId === activeSession.instanceId && e.sectionId === section.id,
@@ -355,7 +369,7 @@ export function LiveSession() {
             disabled={!activeSession.started || availableFollowingSec <= 0}
             className="session-extend rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
           >
-            +2 min from next
+            +2 min here
           </button>
           <button
             type="button"

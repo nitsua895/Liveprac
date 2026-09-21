@@ -16,22 +16,53 @@ import type {
   SessionTemplate,
 } from '../types'
 
-const MIN_SECTION_SEC = 60
+function remainingAppointmentSec(session: ActiveSession, now: number) {
+  const total = session.plannedDurationSec
+    ?? session.sections.reduce((sum, section) => sum + section.durationSec, 0)
+  if (!session.started) return total
+  return Math.max(0, total - (now - session.startedAt) / 1000)
+}
 
-function takeFromFollowingSections(
+/** Keeps each unfinished section's relative plan, then spreads any clock
+ * difference evenly. This is the one rule used by pause, skip, back, and
+ * manual time changes, so the appointment deadline can never move. */
+function rebalanceRemainingSections(
   sections: SectionTemplate[],
-  currentIndex: number,
-  requestedSec: number,
-): { sections: SectionTemplate[]; takenSec: number } {
+  startIndex: number,
+  targetSec: number,
+  elapsedInFirstSec = 0,
+): SectionTemplate[] {
   const next = sections.map((section) => ({ ...section }))
-  let remaining = Math.max(0, requestedSec)
-  for (let index = currentIndex + 1; index < next.length && remaining > 0; index += 1) {
-    const available = Math.max(0, next[index].durationSec - MIN_SECTION_SEC)
-    const taken = Math.min(available, remaining)
-    next[index].durationSec -= taken
-    remaining -= taken
+  const allocations = next.slice(startIndex).map((section, offset) =>
+    Math.max(0, section.durationSec - (offset === 0 ? elapsedInFirstSec : 0)),
+  )
+  if (!allocations.length) return next
+
+  let difference = Math.max(0, targetSec) - allocations.reduce((sum, value) => sum + value, 0)
+  if (difference >= 0) {
+    const share = difference / allocations.length
+    allocations.forEach((value, index) => { allocations[index] = value + share })
+  } else {
+    let toRemove = -difference
+    let adjustable = allocations.map((_, index) => index)
+    while (toRemove > 0.001 && adjustable.length) {
+      const share = toRemove / adjustable.length
+      let removed = 0
+      adjustable = adjustable.filter((index) => {
+        const amount = Math.min(allocations[index], share)
+        allocations[index] -= amount
+        removed += amount
+        return allocations[index] > 0.001
+      })
+      if (removed < 0.001) break
+      toRemove -= removed
+    }
   }
-  return { sections: next, takenSec: requestedSec - remaining }
+
+  allocations.forEach((value, offset) => {
+    next[startIndex + offset].durationSec = value + (offset === 0 ? elapsedInFirstSec : 0)
+  })
+  return next
 }
 
 interface AppState {
@@ -182,47 +213,92 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (nextIndex >= prev.sections.length) {
         return prev
       }
-      const transitionAt = prev.pausedAt ?? Date.now()
+      const transitionAt = Date.now()
       const current = prev.sections[prev.currentSectionIndex]
-      const elapsedSec = Math.max(0, (transitionAt - prev.sectionStartedAt) / 1000)
-      const unusedSec = Math.max(0, current.durationSec - elapsedSec)
+      const sectionClockAt = prev.pausedAt ?? transitionAt
+      const elapsedSec = Math.max(0, (sectionClockAt - prev.sectionStartedAt) / 1000)
       const sections = prev.sections.map((section) => ({ ...section }))
       sections[prev.currentSectionIndex].durationSec = Math.min(current.durationSec, elapsedSec)
-      sections[nextIndex].durationSec += unusedSec
-      return { ...prev, sections, currentSectionIndex: nextIndex, sectionStartedAt: transitionAt }
+      const balanced = rebalanceRemainingSections(
+        sections,
+        nextIndex,
+        remainingAppointmentSec(prev, transitionAt),
+      )
+      return { ...prev, sections: balanced, currentSectionIndex: nextIndex, sectionStartedAt: transitionAt, pausedAt: prev.paused ? transitionAt : null }
     })
   }
 
   function extendCurrentSection(extraSec: number) {
     setActiveSession((prev) => {
       if (!prev) return prev
-      let sections = prev.sections.map((section) => ({ ...section }))
+      const now = Date.now()
+      const sectionClockAt = prev.pausedAt ?? now
+      const elapsedSec = Math.max(0, (sectionClockAt - prev.sectionStartedAt) / 1000)
+      let sections = rebalanceRemainingSections(
+        prev.sections,
+        prev.currentSectionIndex,
+        remainingAppointmentSec(prev, now),
+        elapsedSec,
+      )
       if (extraSec > 0) {
-        const result = takeFromFollowingSections(sections, prev.currentSectionIndex, extraSec)
-        sections = result.sections
-        sections[prev.currentSectionIndex].durationSec += result.takenSec
+        const followingTotal = sections.slice(prev.currentSectionIndex + 1)
+          .reduce((sum, section) => sum + section.durationSec, 0)
+        const moved = Math.min(extraSec, followingTotal)
+        sections[prev.currentSectionIndex].durationSec += moved
+        sections = rebalanceRemainingSections(
+          sections,
+          prev.currentSectionIndex + 1,
+          followingTotal - moved,
+        )
       } else if (extraSec < 0) {
         const current = sections[prev.currentSectionIndex]
-        const released = Math.min(Math.max(0, current.durationSec - MIN_SECTION_SEC), -extraSec)
+        const released = Math.min(Math.max(0, current.durationSec - elapsedSec), -extraSec)
         current.durationSec -= released
-        const receiver = sections[prev.currentSectionIndex + 1]
-        if (receiver) receiver.durationSec += released
+        const nextIndex = prev.currentSectionIndex + 1
+        const followingTotal = sections.slice(nextIndex).reduce((sum, section) => sum + section.durationSec, 0)
+        sections = rebalanceRemainingSections(sections, nextIndex, followingTotal + released)
       }
       return { ...prev, sections }
     })
   }
 
   function updateRuntimeSections(sections: SectionTemplate[]) {
-    setActiveSession((prev) => (prev ? { ...prev, sections } : prev))
+    setActiveSession((prev) => {
+      if (!prev) return prev
+      const activeId = prev.sections[prev.currentSectionIndex]?.id
+      const currentSectionIndex = Math.max(0, sections.findIndex((section) => section.id === activeId))
+      if (!prev.started) return { ...prev, sections, currentSectionIndex }
+      const now = Date.now()
+      const sectionClockAt = prev.pausedAt ?? now
+      const elapsedSec = Math.max(0, (sectionClockAt - prev.sectionStartedAt) / 1000)
+      return {
+        ...prev,
+        sections: rebalanceRemainingSections(
+          sections,
+          currentSectionIndex,
+          remainingAppointmentSec(prev, now),
+          elapsedSec,
+        ),
+        currentSectionIndex,
+      }
+    })
   }
 
   function goToPreviousSection() {
     setActiveSession((prev) => {
       if (!prev || prev.currentSectionIndex === 0) return prev
+      const now = Date.now()
+      const currentSectionIndex = prev.currentSectionIndex - 1
       return {
         ...prev,
-        currentSectionIndex: prev.currentSectionIndex - 1,
-        sectionStartedAt: prev.pausedAt ?? Date.now(),
+        sections: rebalanceRemainingSections(
+          prev.sections,
+          currentSectionIndex,
+          remainingAppointmentSec(prev, now),
+        ),
+        currentSectionIndex,
+        sectionStartedAt: now,
+        pausedAt: prev.paused ? now : null,
       }
     })
   }
@@ -237,15 +313,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           const now = Date.now()
           return { ...prev, started: true, paused: false, pausedAt: null, startedAt: now, sectionStartedAt: now }
         }
-        const pausedMs = prev.pausedAt ? Date.now() - prev.pausedAt : 0
-        const result = takeFromFollowingSections(
+        const now = Date.now()
+        const pausedMs = prev.pausedAt ? now - prev.pausedAt : 0
+        const elapsedSec = Math.max(0, ((prev.pausedAt ?? now) - prev.sectionStartedAt) / 1000)
+        const sections = rebalanceRemainingSections(
           prev.sections,
           prev.currentSectionIndex,
-          pausedMs / 1000,
+          remainingAppointmentSec(prev, now),
+          elapsedSec,
         )
         return {
           ...prev,
-          sections: result.sections,
+          sections,
           paused: false,
           pausedAt: null,
           started: true,
