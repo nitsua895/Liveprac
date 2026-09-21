@@ -810,6 +810,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .event-timeline-item p span { color: rgb(212 212 216); }
 .event-outtake { margin-top: 0.45rem; border-left: 2px solid var(--color-accent-600); padding: 0.4rem 0.7rem; color: rgb(161 161 170); font-size: 0.82rem; }
 .event-outtake span { display: block; margin-bottom: 0.15rem; color: rgb(82 82 91); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.allocation-summary { margin-top: 1rem; border: 1px solid rgb(48 48 52); border-radius: 0.85rem; padding: 0.75rem; }
+.allocation-summary.compact { margin: 0 0 0.65rem; background: rgb(10 10 12 / 0.38); }
+.allocation-summary > div { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 0.22rem 0; color: rgb(161 161 170); font-size: 0.78rem; }
+.allocation-summary strong { flex: none; color: rgb(212 212 216); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 500; font-variant-numeric: tabular-nums; }
 .session-identity {
   display: flex;
   align-items: baseline;
