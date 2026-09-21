@@ -177,7 +177,6 @@ export function LiveSession() {
     ? totalDuration - (now - activeSession.startedAt) / 1000
     : totalDuration
   const displayedSectionRemainingSec = Math.min(sectionRemainingSec, sessionRemainingSec)
-  const closeToNext = activeSession.paused || displayedSectionRemainingSec <= warningSec
   const availableFollowingSec = activeSession.sections
     .slice(activeSession.currentSectionIndex + 1)
     .reduce((sum, upcoming) => sum + Math.max(0, upcoming.durationSec), 0)
@@ -340,21 +339,6 @@ export function LiveSession() {
             near the timer, the rest are tucked behind "More". */}
         <div className="session-controls flex flex-col items-stretch gap-3">
           {section.notes?.trim() && <SectionNotes notes={section.notes} />}
-          {/* Always visible, not just near the transition — the whole point
-              is to answer "what's next" at a glance from across the room,
-              at any moment in the section, not only in its last minute. */}
-          <div
-            className={`up-next-card rounded-xl border p-4 transition-colors duration-500 ${
-              closeToNext ? 'border-accent-700 bg-accent-900/20' : 'border-neutral-800'
-            }`}
-          >
-            <p className="text-sm text-neutral-400">
-              {!activeSession.started ? 'Ready when you are' : activeSession.paused ? 'Paused' : 'Coming up'}
-            </p>
-            <p className="mt-1 text-2xl font-medium text-accent-200 sm:text-3xl">
-              {!activeSession.started ? section.name : (nextSection?.name ?? 'Finish session')}
-            </p>
-          </div>
           <button
             type="button"
             onClick={() => {

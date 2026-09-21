@@ -631,7 +631,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   overscroll-behavior-inline: contain;
 }
 .section-timeline.many-sections > div {
-  flex: 0 0 8.25rem;
+  flex: 0 0 7.5rem;
 }
 .session-timeline-row {
   display: flex;
@@ -851,7 +851,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "notes notes"
-      "upnext upnext"
       "next pause"
       "extend more";
     gap: 0.6rem;
@@ -861,8 +860,15 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .session-pause { grid-area: pause; }
   .session-extend { grid-area: extend; }
   .session-more { grid-area: more; }
-  .section-timeline > div {
-    flex: 0 0 7.75rem;
+  /* A horizontal scroll strip hides most of the plan behind a swipe on a
+     narrow phone. Wrapping into rows keeps every section on screen at once,
+     and a 3-column grid fills the same width the strip used to scroll
+     through — including flush across to the edit pencil, not just partway. */
+  .section-timeline {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    overflow: visible !important;
   }
 }
 
@@ -1019,7 +1025,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "notes notes"
-      "upnext upnext"
       "next next"
       "pause extend"
       "more more";
@@ -1062,7 +1067,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     padding-bottom: 0;
   }
   .section-timeline > div {
-    flex: 0 0 7.25rem;
+    flex: 0 0 6.5rem;
     padding-block: 0.25rem;
   }
   .section-timeline p {

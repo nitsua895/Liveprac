@@ -33,44 +33,32 @@ export function SectionTimeline({
             aria-current={isCurrent ? 'step' : undefined}
             title={section.name}
             data-next={isNext && approaching ? 'true' : undefined}
-            className={`flex min-w-0 flex-1 flex-col rounded-xl px-2 py-2.5 ${
-              isCurrent
-                ? 'bg-accent-900/35'
-                : isNext
-                  ? 'bg-neutral-900/70 ring-1 ring-inset ring-neutral-700/70'
-                  : ''
+            className={`flex min-w-0 flex-1 flex-col rounded-xl px-1.5 py-2 ${
+              isCurrent ? 'bg-accent-900/35' : ''
             }`}
           >
             <div
-              className={`w-full rounded-full transition-colors duration-500 ${
-                isCurrent ? 'h-2.5' : 'h-2'
-              } ${
+              className={`h-1.5 w-full rounded-full transition-colors duration-500 ${
                 index < currentIndex
                   ? 'bg-accent-700/60'
                   : isCurrent
                     ? 'bg-accent-400'
-                    : isNext
-                      ? 'bg-neutral-600'
-                      : 'bg-neutral-800'
+                    : 'bg-neutral-800'
               }`}
             />
             <p
-              className={`mt-2 w-full truncate text-center font-medium ${
+              className={`mt-2 w-full truncate text-center text-xs font-medium ${
                 isCurrent
-                  ? 'text-base text-accent-300 sm:text-lg'
-                  : isNext
-                    ? 'text-sm text-neutral-200 sm:text-base'
-                    : 'text-xs text-neutral-600'
+                  ? 'text-accent-300'
+                    : isNext
+                    ? 'text-neutral-400'
+                    : 'text-neutral-400'
               }`}
             >
               {section.name}
             </p>
-            <span
-              className={`mt-1 h-3 text-center font-mono tabular-nums ${
-                isCurrent || isNext ? 'text-[13px] text-neutral-400' : 'text-[11px] text-neutral-500'
-              }`}
-            >
-              {isCurrent ? 'Now · ' : isNext ? 'Next · ' : ''}{formatAllocation(section.durationSec)}
+            <span className="mt-1 h-3 text-center font-mono text-[11px] tabular-nums text-neutral-500">
+              {isCurrent ? 'Now · ' : isNext && approaching ? 'Next · ' : ''}{formatAllocation(section.durationSec)}
             </span>
           </div>
         )
