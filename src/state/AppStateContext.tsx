@@ -78,6 +78,7 @@ interface AppState {
   saveTemplate: (template: SessionTemplate) => void
   deleteTemplate: (templateId: string) => void
   addClient: (name: string) => ClientProfile
+  updateClient: (clientId: string, changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference'>>) => void
   setClientLastTemplate: (clientId: string, templateId: string) => void
   deleteClient: (clientId: string) => void
   startSession: (templateId: string, clientId: string | null) => void
@@ -178,6 +179,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   function setClientLastTemplate(clientId: string, templateId: string) {
     setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, lastTemplateId: templateId } : c)))
+  }
+
+  function updateClient(
+    clientId: string,
+    changes: Partial<Pick<ClientProfile, 'notes' | 'focusAreas' | 'contraindications' | 'temperaturePreference'>>,
+  ) {
+    setClients((prev) => prev.map((client) => (
+      client.id === clientId ? { ...client, ...changes } : client
+    )))
   }
 
   function deleteClient(clientId: string) {
@@ -385,6 +395,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       clientId: activeSession.clientId,
       sectionId: section.id,
       sectionName: section.name,
+      bodyZone: section.bodyZone,
       type,
       magnitude,
     }
@@ -437,6 +448,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       saveTemplate,
       deleteTemplate,
       addClient,
+      updateClient,
       setClientLastTemplate,
       deleteClient,
       startSession,
