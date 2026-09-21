@@ -5,6 +5,7 @@ export type CueSoundMode = 'off' | 'transitions' | 'all'
 
 const STORAGE_KEY = 'liveprac-cue-sound'
 const DEFAULT_MODE: CueSoundMode = 'transitions'
+export const CUE_SOUND_MODE_EVENT = 'liveprac-cue-sound-mode'
 let audioContext: AudioContext | null = null
 
 export function getCueSoundMode(): CueSoundMode {
@@ -16,6 +17,7 @@ export function getCueSoundMode(): CueSoundMode {
 
 export function setCueSoundMode(mode: CueSoundMode) {
   localStorage.setItem(STORAGE_KEY, mode)
+  window.dispatchEvent(new CustomEvent(CUE_SOUND_MODE_EVENT, { detail: mode }))
 }
 
 function context() {
@@ -60,10 +62,10 @@ function note(ctx: AudioContext, frequency: number, start: number, duration: num
 // too quiet to hear reliably at the old fixed level, independent of whatever
 // the slider was set to (which the old version never actually read).
 const REFERENCE_PEAK: Record<CueTone, number> = {
-  next: 0.16,
-  love: 0.14,
-  flag: 0.13,
-  pressure: 0.13,
+  next: 0.11,
+  love: 0.095,
+  flag: 0.09,
+  pressure: 0.09,
 }
 
 /** One gentle default per tone — distinguishable by ear the way the glow
@@ -96,7 +98,10 @@ async function playCustomTone(tone: CueTone): Promise<void> {
   const url = await getCustomSoundUrl(tone)
   if (!url) return
   const audio = new Audio(url)
-  audio.volume = Math.min(1, Math.max(0, getVolume(tone) / 100))
+  // Uploaded files often have a hotter master than the built-in tones. Keep
+  // the same calm headroom as the synthesized cues while preserving the
+  // user's relative slider choice.
+  audio.volume = Math.min(0.55, Math.max(0, getVolume(tone) / 100 * 0.55))
   await audio.play()
 }
 
@@ -140,3 +145,4 @@ export async function previewCueSound(mode: CueSoundMode) {
     // Settings still persist even on a browser that cannot create an audio context.
   }
 }
+
