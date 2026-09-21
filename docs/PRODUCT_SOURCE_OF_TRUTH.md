@@ -27,6 +27,18 @@ The app is not trying to become a complete scheduling, payments, insurance, or m
 6. The timeline shows sections and time allocation without decorative body icons. The active zone icon belongs in the dial.
 7. Spotify is a compact control and handoff surface, not a Spotify replacement.
 8. Touch targets, contrast, and essential type must work from a distance and across orientations.
+9. Appointment and live-session edits affect today's snapshot only. They never silently rewrite a base routine or client plan.
+10. A client's future plan changes only through an explicit practitioner action such as `Save today’s plan for next time`.
+
+## Information model
+
+- **Client profile:** persistent intake, contraindications, comfort, communication, temperature, and stated pressure preferences.
+- **Base routine:** reusable, client-independent starting structure.
+- **Client plan:** an explicitly saved copy for one client. It does not remain linked to its base routine.
+- **Today’s plan:** the appointment snapshot. Pre-session and live edits apply only to this visit.
+- **Session record:** durable planned-versus-actual allocation, feedback events, checkout, and practitioner notes.
+
+The UI should use plain-language actions (`Edit today`, `Save for next time`) rather than requiring practitioners to understand this data model.
 
 ## Current priority
 
@@ -49,6 +61,7 @@ Shelby will use Liveprac in real sessions during the week of 2026-09-21. Austin 
 - Zone-level pressure tendencies averaged per session.
 - Remote connection/battery, wake-lock, and cue readiness.
 - One explicit Start session action.
+- Every appointment enters this launchpad before its timer begins.
 
 ### P2 — complete the core loop
 
@@ -56,6 +69,19 @@ Shelby will use Liveprac in real sessions during the week of 2026-09-21. Austin 
 - Post-session summary of plan versus actual allocation, cues, and notes.
 - Suggested adjustments for the next routine, always approved by the practitioner.
 - Faster routine duplication and editing.
+- Optional same-iPad client intake and checkout, isolated behind a practitioner PIN privacy curtain.
+- Immediate practitioner closeout after checkout, with notes for next time.
+
+## Core workflow
+
+1. Appointment selects a client and either their client plan or a one-time base routine.
+2. Optional first-visit intake or returning-client check-in.
+3. Practitioner reviews the launchpad and edits today's plan.
+4. The fixed-deadline live session runs from an isolated snapshot.
+5. Optional client checkout records pressure and next-visit feedback.
+6. Practitioner adds notes and may explicitly save today's plan for next time.
+
+The PIN is only a same-device privacy curtain. It is not authentication or encryption and must be replaced by the commercial account-security layer before sensitive client data is synced.
 
 ### P3 — commercial MVP
 
