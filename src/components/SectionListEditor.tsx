@@ -18,6 +18,7 @@ export function SectionListEditor({
   preserveTotal?: boolean
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
   function updateSection(index: number, patch: Partial<SectionTemplate>) {
     onChange(sections.map((section, sectionIndex) =>
@@ -102,19 +103,26 @@ export function SectionListEditor({
     let working = sections.map((section) => ({ ...section }))
     const draggedId = sections[index].id
     setDraggingId(draggedId)
+    setDropTargetId(null)
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // Pointer capture is unavailable in a few embedded WebViews; the
+      // window listeners below still keep the gesture alive there.
+    }
 
     function move(pointerEvent: PointerEvent) {
       pointerEvent.preventDefault()
       const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-section-row]'))
-      const previous = rows[currentIndex - 1]
-      const following = rows[currentIndex + 1]
-      let target = currentIndex
-      if (previous && pointerEvent.clientY < previous.getBoundingClientRect().top + previous.offsetHeight / 2) {
-        target = currentIndex - 1
-      } else if (following && pointerEvent.clientY > following.getBoundingClientRect().top + following.offsetHeight / 2) {
-        target = currentIndex + 1
-      }
-      if (target !== currentIndex) {
+      const targetRow = rows.find((row) => {
+        if (row.dataset.sectionId === draggedId) return false
+        const box = row.getBoundingClientRect()
+        return pointerEvent.clientY < box.top + box.height / 2
+      })
+      const targetId = targetRow?.dataset.sectionId ?? rows.at(-1)?.dataset.sectionId ?? null
+      const target = targetId ? working.findIndex((section) => section.id === targetId) : -1
+      setDropTargetId(targetId)
+      if (target >= 0 && target !== currentIndex) {
         working = moveSection(currentIndex, target, working)
         currentIndex = target
       }
@@ -125,6 +133,7 @@ export function SectionListEditor({
       window.removeEventListener('pointerup', finish)
       window.removeEventListener('pointercancel', finish)
       setDraggingId(null)
+      setDropTargetId(null)
     }
 
     window.addEventListener('pointermove', move, { passive: false })
@@ -138,7 +147,9 @@ export function SectionListEditor({
         <div
           key={section.id}
           data-section-row
+          data-section-id={section.id}
           data-dragging={draggingId === section.id}
+          data-drop-target={dropTargetId === section.id}
           className="section-editor-row grid items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
         >
           <button

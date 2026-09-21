@@ -12,7 +12,7 @@ import { formatClock, sessionDurationSec } from '../lib/time'
 import { acquireWakeLock, reacquireOnVisible, releaseWakeLock } from '../lib/wakeLock'
 import { useAppState } from '../state/AppStateContext'
 
-const QUICK_EXTEND_SEC = 2 * 60
+const QUICK_ADJUST_SEC = 60
 const COMPLETED_SESSION_KEY = 'liveprac:v1:completedSession'
 
 function completedSessionId(): string | null {
@@ -39,7 +39,6 @@ export function LiveSession() {
     clients,
     events,
     advanceSection,
-    goToPreviousSection,
     endSession,
     extendCurrentSection,
     updateRuntimeSections,
@@ -305,28 +304,50 @@ export function LiveSession() {
         className="session-stage grid items-center gap-6"
       >
         <div className="session-dial-column flex flex-col items-center">
-          <TimerDial
-            sizePx={350}
-            remainingFraction={displayedSectionRemainingSec / section.durationSec}
-            sessionFraction={sessionRemainingSec / totalDuration}
-            over={displayedSectionRemainingSec < 0}
-            sessionOver={sessionRemainingSec < 0}
-            strokeWidth={12}
-            markers={dialMarkers}
-          >
-            <BodyZoneDiagram activeZone={section.bodyZone} size={42} />
-            <span className="mt-1 max-w-60 text-center text-lg font-semibold text-accent-200">
-              {section.name}
-            </span>
-            <span
-              className={`session-primary-time mt-1 font-mono tabular-nums ${
-                displayedSectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
-              }`}
+          <div className="session-dial-with-adjustments">
+            <button
+              type="button"
+              aria-label="Remove one minute from this section"
+              title="Remove one minute"
+              disabled={sectionRemainingSec <= QUICK_ADJUST_SEC}
+              onClick={() => extendCurrentSection(-QUICK_ADJUST_SEC)}
+              className="dial-adjust dial-adjust-minus"
             >
-              {displayedSectionRemainingSec < 0 ? '+' : ''}
-              {formatClock(Math.abs(displayedSectionRemainingSec))}
-            </span>
-          </TimerDial>
+              −
+            </button>
+            <TimerDial
+              sizePx={350}
+              remainingFraction={displayedSectionRemainingSec / section.durationSec}
+              sessionFraction={sessionRemainingSec / totalDuration}
+              over={displayedSectionRemainingSec < 0}
+              sessionOver={sessionRemainingSec < 0}
+              strokeWidth={12}
+              markers={dialMarkers}
+            >
+              <BodyZoneDiagram activeZone={section.bodyZone} size={42} />
+              <span className="mt-1 max-w-60 text-center text-lg font-semibold text-accent-200">
+                {section.name}
+              </span>
+              <span
+                className={`session-primary-time mt-1 font-mono tabular-nums ${
+                  displayedSectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
+                }`}
+              >
+                {displayedSectionRemainingSec < 0 ? '+' : ''}
+                {formatClock(Math.abs(displayedSectionRemainingSec))}
+              </span>
+            </TimerDial>
+            <button
+              type="button"
+              aria-label="Add one minute to this section"
+              title="Add one minute"
+              disabled={availableFollowingSec <= 0}
+              onClick={() => extendCurrentSection(QUICK_ADJUST_SEC)}
+              className="dial-adjust dial-adjust-plus"
+            >
+              +
+            </button>
+          </div>
           {/* Outside the dial's own circle on purpose — text inside the ring
               scales with the SVG geometry, but this caption is plain HTML
               and doesn't, so at a small rendered dial size it used to spill
@@ -363,14 +384,6 @@ export function LiveSession() {
           >
             {nextSection ? 'Next Section' : 'Finish Session'}
           </button>
-          <button
-            type="button"
-            onClick={() => extendCurrentSection(QUICK_EXTEND_SEC)}
-            disabled={availableFollowingSec <= 0}
-            className="session-extend rounded-full border border-neutral-800 px-7 py-2 text-base text-neutral-400"
-          >
-            +2 min here
-          </button>
         </div>
       </div>
 
@@ -397,14 +410,6 @@ export function LiveSession() {
       {showController && (
         <div className="session-more-panel flex flex-wrap justify-center gap-3">
           <button type="button" className="secondary-action" onClick={() => setShowController(false)}>Close</button>
-          <button
-            type="button"
-            onClick={goToPreviousSection}
-            disabled={activeSession.currentSectionIndex === 0}
-            className="rounded-full border border-neutral-800 px-5 py-2.5 text-neutral-400 disabled:opacity-30"
-          >
-            Previous Section
-          </button>
           <RemoteSimulator />
         </div>
       )}

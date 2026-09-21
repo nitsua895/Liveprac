@@ -39,6 +39,7 @@ export function AmbientGlow() {
   return (
     <div key={`${current.id}:${current.createdAt}:${current.count}`}
       className="cue-hold pointer-events-none fixed inset-0 z-40" data-tone={current.tone} style={customVars}>
+      <div className="cue-backdrop absolute inset-0" />
       <div className="cue-glow ambient-vignette absolute inset-0" />
       <div className="ambient-vignette-flash absolute inset-0" />
       <div className="cue-banner" role="status" aria-live="polite" aria-atomic="true">
