@@ -55,7 +55,7 @@ export function SectionTimeline({
             >
               {section.name}
             </p>
-            <span className="mt-1 h-3 text-center font-mono text-[11px] tabular-nums text-neutral-500">
+            <span className="timeline-section-time mt-1 text-center font-mono text-xs font-medium tabular-nums text-neutral-400">
               {isCurrent ? 'Now · ' : isNext && approaching ? 'Next · ' : ''}{formatAllocation(section.durationSec)}
             </span>
           </div>
