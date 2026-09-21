@@ -274,8 +274,8 @@ textarea {
   padding-block: 0.5rem;
 }
 @media (orientation: landscape) and (min-height: 600px) and (min-width: 900px) {
-  .session-stage { max-width: 960px; grid-template-columns: minmax(0, 1fr) 18rem; }
-  .session-dial-column .timer-dial { width: min(46vw, 500px) !important; }
+  .session-stage { max-width: 1040px; grid-template-columns: minmax(0, 1fr) minmax(17rem, 19rem); }
+  .session-dial-column .timer-dial { width: min(40vw, 440px) !important; }
   .session-stage .session-primary-time { font-size: 5rem; }
   .section-timeline p { font-size: 0.9rem; }
   .session-stage .section-notes { font-size: 1rem; }
@@ -616,26 +616,53 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   z-index: 4;
   border-color: var(--color-accent-500);
   background: rgb(38 38 42 / 0.96);
-  opacity: 0.92;
-  box-shadow: 0 14px 36px rgb(0 0 0 / 0.42);
+  opacity: 0.18;
+  box-shadow: inset 0 0 0 2px var(--color-accent-500);
 }
 .section-editor-row[data-drop-target='true'] {
   border-color: var(--color-accent-500);
   box-shadow: inset 0 0 0 1px var(--color-accent-500), 0 0 0 3px rgb(139 92 246 / 0.12);
 }
-.section-drag { grid-area: drag; }
+.section-drag {
+  grid-area: drag;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+.section-drag svg { pointer-events: none; }
+.section-drag:hover,
+.section-drag:focus-visible {
+  border-radius: 0.65rem;
+  background: rgb(139 92 246 / 0.14);
+  color: var(--color-accent-300);
+}
+.section-drag-preview {
+  border-color: var(--color-accent-400) !important;
+  background: rgb(30 28 35 / 0.98) !important;
+  opacity: 0.96;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.58), 0 0 0 2px var(--color-accent-500);
+  transform-origin: center;
+  transition: none !important;
+}
 .section-body { grid-area: body; }
 .section-fields { grid-area: fields; }
 .section-duration { grid-area: duration; }
 .section-remove { grid-area: remove; }
 .section-timeline {
+  display: grid;
+  grid-template-columns: repeat(var(--timeline-columns), minmax(0, 1fr));
+  gap: 0.5rem;
   min-width: 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(64 64 64) transparent;
-  overscroll-behavior-inline: contain;
+  align-items: stretch;
 }
-.section-timeline.many-sections > div {
-  flex: 0 0 7.5rem;
+.timeline-section-name {
+  display: -webkit-box;
+  min-height: 2.25em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.125;
 }
 .session-timeline-row {
   display: flex;
@@ -720,8 +747,15 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 .session-dial-with-adjustments {
   display: flex;
+  width: 100%;
+  min-width: 0;
   align-items: center;
+  justify-content: center;
   gap: 0.65rem;
+}
+.session-dial-with-adjustments .timer-dial {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 .dial-adjust {
   display: flex;
@@ -861,7 +895,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   right: auto;
   left: calc(env(safe-area-inset-left) + 0.5rem);
 }
-@media (orientation: portrait) and (max-width: 900px) {
+@media (orientation: portrait) {
   .orientation-control:not(:empty) {
     display: block;
   }
@@ -909,14 +943,13 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
      and a 3-column grid fills the same width the strip used to scroll
      through — including flush across to the edit pencil, not just partway. */
   .section-timeline {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    --timeline-columns: 4 !important;
     gap: 0.5rem;
-    overflow: visible !important;
   }
 }
 
 @media (max-width: 700px) {
+  .section-timeline { --timeline-columns: 3 !important; }
   .timer-dial {
     width: min(88vw, 350px) !important;
   }

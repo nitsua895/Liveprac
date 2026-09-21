@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { newSectionId } from '../state/defaultTemplates'
 import { BODY_ZONE_LABELS, BODY_ZONES } from '../lib/bodyZones'
 import type { SectionTemplate } from '../types'
@@ -19,6 +19,11 @@ export function SectionListEditor({
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+  const [orderedSections, setOrderedSections] = useState(sections)
+
+  useEffect(() => {
+    if (!draggingId) setOrderedSections(sections)
+  }, [sections, draggingId])
 
   function updateSection(index: number, patch: Partial<SectionTemplate>) {
     onChange(sections.map((section, sectionIndex) =>
@@ -99,9 +104,30 @@ export function SectionListEditor({
 
   function beginDrag(index: number, event: React.PointerEvent<HTMLButtonElement>) {
     event.preventDefault()
-    let currentIndex = index
     let working = sections.map((section) => ({ ...section }))
     const draggedId = sections[index].id
+    const dragged = working[index]
+    const sourceRow = event.currentTarget.closest<HTMLElement>('[data-section-row]')
+    const sourceBox = sourceRow?.getBoundingClientRect()
+    const startY = event.clientY
+    const preview = sourceRow?.cloneNode(true) as HTMLElement | undefined
+
+    if (preview && sourceBox) {
+      preview.removeAttribute('data-section-row')
+      preview.classList.add('section-drag-preview')
+      Object.assign(preview.style, {
+        position: 'fixed',
+        zIndex: '100',
+        pointerEvents: 'none',
+        left: `${sourceBox.left}px`,
+        top: `${sourceBox.top}px`,
+        width: `${sourceBox.width}px`,
+        height: `${sourceBox.height}px`,
+        margin: '0',
+      })
+      document.body.appendChild(preview)
+    }
+
     setDraggingId(draggedId)
     setDropTargetId(null)
     try {
@@ -113,25 +139,31 @@ export function SectionListEditor({
 
     function move(pointerEvent: PointerEvent) {
       pointerEvent.preventDefault()
+      if (preview) preview.style.transform = `translate3d(0, ${pointerEvent.clientY - startY}px, 0)`
       const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-section-row]'))
-      const targetRow = rows.find((row) => {
-        if (row.dataset.sectionId === draggedId) return false
+        .filter((row) => row.dataset.sectionId !== draggedId)
+      const remaining = working.filter((section) => section.id !== draggedId)
+      const insertionIndex = rows.findIndex((row) => {
         const box = row.getBoundingClientRect()
         return pointerEvent.clientY < box.top + box.height / 2
       })
-      const targetId = targetRow?.dataset.sectionId ?? rows.at(-1)?.dataset.sectionId ?? null
-      const target = targetId ? working.findIndex((section) => section.id === targetId) : -1
-      setDropTargetId(targetId)
-      if (target >= 0 && target !== currentIndex) {
-        working = moveSection(currentIndex, target, working)
-        currentIndex = target
+      const target = insertionIndex < 0 ? remaining.length : insertionIndex
+      const next = [...remaining]
+      next.splice(target, 0, dragged)
+      const nextOrder = next.map((section) => section.id).join('|')
+      if (nextOrder !== working.map((section) => section.id).join('|')) {
+        working = next
+        setOrderedSections(next)
       }
+      setDropTargetId(remaining[target]?.id ?? remaining.at(-1)?.id ?? null)
     }
 
     function finish() {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', finish)
       window.removeEventListener('pointercancel', finish)
+      preview?.remove()
+      onChange(working)
       setDraggingId(null)
       setDropTargetId(null)
     }
@@ -143,7 +175,7 @@ export function SectionListEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      {sections.map((section, index) => (
+      {orderedSections.map((section, index) => (
         <div
           key={section.id}
           data-section-row
@@ -157,6 +189,8 @@ export function SectionListEditor({
             aria-label={`Drag ${section.name} to reorder`}
             aria-grabbed={draggingId === section.id}
             onPointerDown={(event) => beginDrag(index, event)}
+            onContextMenu={(event) => event.preventDefault()}
+            onDragStart={(event) => event.preventDefault()}
             onKeyDown={(event) => {
               if (event.key === 'ArrowUp') moveSection(index, index - 1)
               if (event.key === 'ArrowDown') moveSection(index, index + 1)
