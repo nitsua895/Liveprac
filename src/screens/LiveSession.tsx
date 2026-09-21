@@ -267,8 +267,9 @@ export function LiveSession() {
 
     if (completionView === 'setup') {
       return (
-        <div className="session-complete px-5">
-          <div className="completion-card">
+        <div className="session-complete">
+          <div className="completion-card client-handoff-card">
+            <p className="completion-step">Client checkout · Secure handoff</p>
             <p className="section-label">Before handing over the iPad</p>
             <h1 className="mt-2 text-3xl font-light text-neutral-100">Set a practitioner PIN</h1>
             <p className="mt-2 text-sm leading-relaxed text-neutral-500">The client will stay inside checkout mode until this four-digit PIN is entered.</p>
@@ -284,8 +285,9 @@ export function LiveSession() {
 
     if (completionView === 'outtake') {
       return (
-        <div className="session-complete px-5">
+        <div className="session-complete">
           <div className="completion-card client-checkout-card">
+            <p className="completion-step">Client checkout</p>
             <p className="section-label">Quick checkout</p>
             <h1 className="mt-2 text-3xl font-light text-neutral-100">How did that feel?</h1>
             <div className="mt-6">
@@ -302,7 +304,7 @@ export function LiveSession() {
               <span className="launchpad-label">Anything to focus on next time?</span>
               <textarea value={outtakeNextFocus} onChange={(event) => setOuttakeNextFocus(event.target.value)} rows={2} className="closeout-textarea" />
             </label>
-            <button type="button" onClick={() => { setSessionOuttake(activeSession.instanceId, { pressure: outtakePressure, highlight: outtakeHighlight, nextFocus: outtakeNextFocus }); setCompletionView('thanks') }} className="primary-action mt-6 w-full">Submit feedback</button>
+            <button type="button" onClick={() => { setSessionOuttake(activeSession.instanceId, { pressure: outtakePressure, highlight: outtakeHighlight, nextFocus: outtakeNextFocus }); setCompletionView('thanks') }} className="primary-action mt-6 w-full">Save feedback</button>
           </div>
         </div>
       )
@@ -310,21 +312,25 @@ export function LiveSession() {
 
     if (completionView === 'thanks' || completionView === 'unlock') {
       return (
-        <div className="session-complete px-5">
-          <div className="completion-card text-center">
+        <div className="session-complete">
+          <div className="completion-card client-handoff-card text-center">
             {completionView === 'thanks' ? (
               <>
                 <p className="section-label">Complete</p>
                 <h1 className="mt-3 text-3xl font-light text-neutral-100">Thank you</h1>
                 <p className="mt-2 text-neutral-500">Your feedback has been saved.</p>
-                <button type="button" onClick={() => setCompletionView('unlock')} className="mt-12 text-sm text-neutral-700">Practitioner</button>
+                <button type="button" onClick={() => setCompletionView('unlock')} className="secondary-action client-mode-return">Return to practitioner</button>
               </>
             ) : (
               <>
                 <p className="section-label">Practitioner access</p>
+                <h1 className="mt-3 text-2xl font-light text-neutral-100">Enter your PIN to continue</h1>
                 <input value={returnPin} onChange={(event) => { setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
-                {pinError && <p className="mt-2 text-sm text-red-400">Incorrect PIN</p>}
-                <button type="button" disabled={returnPin.length !== 4} onClick={() => { if (verifyPractitionerPin(returnPin)) setCompletionView('closeout'); else setPinError(true) }} className="primary-action mt-5">Unlock</button>
+                {pinError && <p className="mt-2 text-sm text-red-400" role="alert">Incorrect PIN</p>}
+                <div className="mt-5 flex justify-center gap-2">
+                  <button type="button" onClick={() => { setReturnPin(''); setPinError(false); setCompletionView('thanks') }} className="secondary-action">Back</button>
+                  <button type="button" disabled={returnPin.length !== 4} onClick={() => { if (verifyPractitionerPin(returnPin)) setCompletionView('closeout'); else setPinError(true) }} className="primary-action">Unlock</button>
+                </div>
               </>
             )}
           </div>
@@ -334,7 +340,7 @@ export function LiveSession() {
 
     if (completionView === 'closeout') {
       return (
-        <div className="session-complete px-5">
+        <div className="session-complete">
           <div className="completion-card practitioner-closeout">
             <p className="section-label">Practitioner closeout</p>
             <h1 className="mt-2 text-3xl font-light text-neutral-100">Notes for next time</h1>
@@ -355,7 +361,7 @@ export function LiveSession() {
                 ))}
               </div>
             )}
-            <textarea value={note} onChange={(event) => setSessionNote(activeSession.instanceId, event.target.value)} placeholder="What should you remember before the next visit?" rows={5} className="closeout-textarea mt-4" autoFocus />
+            <textarea value={note} onChange={(event) => setSessionNote(activeSession.instanceId, event.target.value)} placeholder="What should you remember before the next visit?" rows={5} className="closeout-textarea mt-4" />
             {client && (
               <button type="button" onClick={() => { saveActiveSessionAsClientPlan(); setPlanSaved(true) }} className={`mt-3 w-full rounded-xl border px-4 py-3 text-sm ${planSaved ? 'border-accent-500/50 bg-accent-500/10 text-accent-200' : 'border-neutral-700 text-neutral-300'}`}>
                 {planSaved ? 'Saved as client plan' : 'Save today’s plan for next time'}
@@ -368,22 +374,24 @@ export function LiveSession() {
     }
 
     return (
-      <div className="session-complete flex flex-col items-center justify-center gap-5 px-5 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-400">Session complete</p>
-        <h1 className="text-3xl font-light text-neutral-100 sm:text-4xl">
-          {template.name}
-          {client ? ` · ${client.name}` : ''}
-        </h1>
-        {lovedCount > 0 && (
-          <p className="text-neutral-500">
-            {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
-          </p>
-        )}
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          {client && <button type="button" onClick={() => setCompletionView(getPractitionerPin() ? 'outtake' : 'setup')} className="secondary-action px-7 py-3 text-base">Client checkout</button>}
-          <button type="button" onClick={() => setCompletionView('closeout')} className="primary-action px-7 py-3 text-base">Practitioner closeout</button>
+      <div className="session-complete text-center">
+        <div className="completion-choice">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-400">Session complete</p>
+          <h1 className="mt-3 text-3xl font-light text-neutral-100 sm:text-4xl">
+            {template.name}
+            {client ? ` · ${client.name}` : ''}
+          </h1>
+          {lovedCount > 0 && (
+            <p className="mt-2 text-neutral-500">
+              {lovedCount} moment{lovedCount === 1 ? '' : 's'} marked loved
+            </p>
+          )}
+          <div className="completion-choice-actions">
+            {client && <button type="button" onClick={() => setCompletionView(getPractitionerPin() ? 'outtake' : 'setup')} className="primary-action px-7 py-3 text-base">Hand to client</button>}
+            <button type="button" onClick={() => setCompletionView('closeout')} className="secondary-action px-7 py-3 text-base">Add practitioner notes</button>
+          </div>
+          <button type="button" onClick={finishAndReturn} className="mt-5 text-sm text-neutral-600">Finish without notes</button>
         </div>
-        <button type="button" onClick={finishAndReturn} className="text-sm text-neutral-700">Skip closeout</button>
       </div>
     )
   }

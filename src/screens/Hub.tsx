@@ -135,7 +135,7 @@ export function Hub() {
 
       {selectedTemplate && (
         <div className="modal-backdrop">
-          <div className={`modal-card ${launchClientId !== undefined ? 'launchpad-card' : ''}`} role="dialog" aria-modal="true" aria-labelledby="start-session-title">
+          <div className={`modal-card workflow-modal-card ${launchClientId !== undefined ? 'launchpad-card' : ''} ${showClientIntake ? 'client-flow-card' : ''}`} role="dialog" aria-modal="true" aria-label="Session setup">
             {showClientIntake && selectedClient ? (
               <ClientIntakePanel
                 client={selectedClient}
@@ -200,9 +200,9 @@ export function Hub() {
 
                 {selectedClient ? (
                   <div className="launchpad-grid">
-                    <LaunchField label="Relevant preferences" value={selectedClient.notes} placeholder="Communication, comfort, positioning…" onChange={(notes) => updateClient(selectedClient.id, { notes })} />
-                    <LaunchField label="Planned focus areas" value={selectedClient.focusAreas ?? ''} placeholder="What matters most today…" onChange={(focusAreas) => updateClient(selectedClient.id, { focusAreas })} />
-                    <LaunchField label="Contraindication reminders" value={selectedClient.contraindications ?? ''} placeholder="Areas or techniques to avoid…" onChange={(contraindications) => updateClient(selectedClient.id, { contraindications })} alert={Boolean(selectedClient.contraindications?.trim())} />
+                    <ReviewField label="Relevant preferences" value={selectedClient.notes} empty="None noted" />
+                    <ReviewField label="Planned focus areas" value={selectedClient.focusAreas ?? ''} empty="No focus areas noted" />
+                    <ReviewField label="Contraindication reminders" value={selectedClient.contraindications ?? ''} empty="None noted" alert={Boolean(selectedClient.contraindications?.trim())} />
                     <div className="launchpad-panel">
                       <p className="launchpad-label">Previous session note</p>
                       <p className={previousSessionNote ? 'text-sm leading-relaxed text-neutral-300' : 'text-sm text-neutral-600'}>{previousSessionNote ?? 'No previous note yet'}</p>
@@ -227,18 +227,10 @@ export function Hub() {
                     </div>
 
                     <div className="launchpad-panel launchpad-span">
-                      <p className="launchpad-label">Temperature preference</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(['cooler', 'neutral', 'warmer'] as const).map((temperature) => (
-                          <button
-                            key={temperature}
-                            type="button"
-                            onClick={() => updateClient(selectedClient.id, { temperaturePreference: temperature })}
-                            className={`rounded-full border px-3 py-1.5 text-sm capitalize ${selectedClient.temperaturePreference === temperature ? 'border-accent-400/60 bg-accent-500/15 text-accent-200' : 'border-neutral-800 text-neutral-500'}`}
-                          >
-                            {temperature}
-                          </button>
-                        ))}
+                      <p className="launchpad-label">Comfort preferences</p>
+                      <div className="launchpad-facts">
+                        <span><strong>Temperature</strong>{selectedClient.temperaturePreference ?? 'Not set'}</span>
+                        <span><strong>Communication</strong>{communicationLabel(selectedClient.communicationPreference)}</span>
                       </div>
                     </div>
                   </div>
@@ -281,6 +273,27 @@ function LaunchField({ label, value, placeholder, onChange, alert = false }: {
   )
 }
 
+function ReviewField({ label, value, empty, alert = false }: {
+  label: string
+  value: string
+  empty: string
+  alert?: boolean
+}) {
+  return (
+    <div className={`launchpad-panel ${alert ? 'launchpad-alert' : ''}`}>
+      <p className="launchpad-label">{label}</p>
+      <p className={value.trim() ? 'review-value' : 'review-value empty'}>{value.trim() || empty}</p>
+    </div>
+  )
+}
+
+function communicationLabel(value: ClientProfile['communicationPreference']) {
+  if (value === 'check_ins') return 'Occasional check-ins'
+  if (value === 'collaborative') return 'Collaborative'
+  if (value === 'quiet') return 'Mostly quiet'
+  return 'Not set'
+}
+
 function ReadinessItem({ ready, label, neutral = false }: { ready: boolean; label: string; neutral?: boolean }) {
   return (
     <span className={`readiness-item ${neutral ? 'neutral' : ready ? 'ready' : 'not-ready'}`}>
@@ -310,10 +323,13 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
         .map((zone) => [zone, client.statedPressure?.[zone] ?? 'moderate']),
     ) as NonNullable<ClientProfile['statedPressure']>
   })
+  const [formStep, setFormStep] = useState<1 | 2>(1)
 
   if (stage === 'setup') {
     return (
-      <div className="client-mode-setup">
+      <div className="client-flow-shell client-mode-setup">
+        <FlowProgress current={1} labels={['Secure handoff', 'Client intake', 'Review']} />
+        <div className="client-flow-content narrow">
         <p className="section-label">Before handing over the iPad</p>
         <h3 className="mt-2 text-2xl font-light text-neutral-100">Set a practitioner PIN</h3>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-500">
@@ -324,63 +340,111 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
           <button type="button" onClick={onClose} className="secondary-action">Cancel</button>
           <button type="button" disabled={pin.length !== 4} onClick={() => { if (setPractitionerPin(pin)) { setPin(''); setStage('form') } }} className="primary-action">Enter client mode</button>
         </div>
+        </div>
       </div>
     )
   }
 
   if (stage === 'thanks') {
     return (
-      <div className="client-mode-complete">
+      <div className="client-flow-shell">
+        <FlowProgress current={3} labels={['Secure handoff', 'Client intake', 'Review']} />
+        <div className="client-mode-complete">
         <p className="section-label">All set</p>
         <h3 className="mt-3 text-3xl font-light text-neutral-100">Thank you, {client.name}</h3>
         <p className="mt-2 text-neutral-500">Your practitioner will take it from here.</p>
-        <button type="button" onClick={() => setStage('unlock')} className="mt-10 text-sm text-neutral-700">Practitioner</button>
+        <button type="button" onClick={() => setStage('unlock')} className="secondary-action client-mode-return">Return to practitioner</button>
+        </div>
       </div>
     )
   }
 
   if (stage === 'unlock') {
     return (
-      <div className="client-mode-complete">
+      <div className="client-flow-shell">
+        <FlowProgress current={3} labels={['Secure handoff', 'Client intake', 'Review']} />
+        <div className="client-mode-complete">
         <p className="section-label">Practitioner access</p>
+        <h3 className="mt-3 text-2xl font-light text-neutral-100">Enter your PIN to continue</h3>
         <input value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" autoComplete="off" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
-        {pinError && <p className="mt-2 text-sm text-red-400">Incorrect PIN</p>}
-        <button type="button" disabled={pin.length !== 4} onClick={() => { if (verifyPractitionerPin(pin)) onClose(); else setPinError(true) }} className="primary-action mt-5">Unlock</button>
+        {pinError && <p className="mt-2 text-sm text-red-400" role="alert">Incorrect PIN</p>}
+        <div className="mt-5 flex gap-2">
+          <button type="button" onClick={() => { setPin(''); setPinError(false); setStage('thanks') }} className="secondary-action">Back</button>
+          <button type="button" disabled={pin.length !== 4} onClick={() => { if (verifyPractitionerPin(pin)) onClose(); else setPinError(true) }} className="primary-action">Unlock</button>
+        </div>
+        </div>
       </div>
     )
   }
 
   const zones = BODY_ZONES.filter((zone) => zone !== 'none')
   return (
-    <div className="client-intake">
-      <p className="section-label">Welcome, {client.name}</p>
-      <h3 className="mt-2 text-2xl font-light text-neutral-100">What would help you feel comfortable today?</h3>
-      <div className="client-intake-grid">
-        <LaunchField label="Areas to focus" value={focus} placeholder="Shoulders, lower back…" onChange={setFocus} />
-        <LaunchField label="Areas or techniques to avoid" value={avoid} placeholder="Injuries, sensitivities…" onChange={setAvoid} alert={Boolean(avoid.trim())} />
-        <LaunchField label="Anything else to know" value={preferences} placeholder="Positioning, comfort, communication…" onChange={setPreferences} />
-        <div className="launchpad-panel">
-          <p className="launchpad-label">Room temperature</p>
-          <Segmented values={['cooler', 'neutral', 'warmer']} value={temperature} onChange={(value) => setTemperature(value as NonNullable<ClientProfile['temperaturePreference']>)} />
+    <div className="client-flow-shell client-intake">
+      <FlowProgress current={2} labels={['Secure handoff', 'Client intake', 'Review']} />
+      <div className="client-intake-heading">
+        <div>
+          <p className="section-label">Welcome, {client.name}</p>
+          <h3 className="mt-2 text-2xl font-light text-neutral-100">{formStep === 1 ? 'What should we know for today?' : 'How do you prefer your session?'}</h3>
         </div>
-        <div className="launchpad-panel launchpad-span">
-          <p className="launchpad-label">Communication</p>
-          <Segmented values={['quiet', 'check_ins', 'collaborative']} labels={['Mostly quiet', 'Occasional check-ins', 'Collaborative']} value={communication} onChange={(value) => setCommunication(value as NonNullable<ClientProfile['communicationPreference']>)} />
-        </div>
-        <div className="launchpad-panel launchpad-span">
-          <p className="launchpad-label">Pressure by area</p>
-          <div className="intake-pressure-grid">
-            {zones.map((zone) => (
-              <div key={zone} className="intake-pressure-row">
-                <span>{BODY_ZONE_LABELS[zone]}</span>
-                <Segmented values={['lighter', 'moderate', 'firmer']} value={pressure[zone] ?? 'moderate'} onChange={(value) => setPressure((current) => ({ ...current, [zone]: value as 'lighter' | 'moderate' | 'firmer' }))} compact />
-              </div>
-            ))}
+        <span className="flow-count">{formStep} of 2</span>
+      </div>
+      {formStep === 1 ? (
+        <div className="client-intake-grid intake-essentials">
+          <LaunchField label="Areas to focus" value={focus} placeholder="Shoulders, lower back…" onChange={setFocus} />
+          <LaunchField label="Areas or techniques to avoid" value={avoid} placeholder="Injuries, sensitivities…" onChange={setAvoid} alert={Boolean(avoid.trim())} />
+          <div className="launchpad-span">
+            <LaunchField label="Anything else to know" value={preferences} placeholder="Positioning, comfort, communication…" onChange={setPreferences} />
           </div>
         </div>
+      ) : (
+        <div className="client-intake-grid">
+          <div className="launchpad-panel">
+            <p className="launchpad-label">Room temperature</p>
+            <Segmented values={['cooler', 'neutral', 'warmer']} value={temperature} onChange={(value) => setTemperature(value as NonNullable<ClientProfile['temperaturePreference']>)} />
+          </div>
+          <div className="launchpad-panel">
+            <p className="launchpad-label">Communication</p>
+            <Segmented values={['quiet', 'check_ins', 'collaborative']} labels={['Mostly quiet', 'Check-ins', 'Collaborative']} value={communication} onChange={(value) => setCommunication(value as NonNullable<ClientProfile['communicationPreference']>)} />
+          </div>
+          <div className="launchpad-panel launchpad-span">
+            <p className="launchpad-label">Pressure by area</p>
+            <div className="intake-pressure-grid">
+              {zones.map((zone) => (
+                <div key={zone} className="intake-pressure-row">
+                  <span>{BODY_ZONE_LABELS[zone]}</span>
+                  <Segmented values={['lighter', 'moderate', 'firmer']} value={pressure[zone] ?? 'moderate'} onChange={(value) => setPressure((current) => ({ ...current, [zone]: value as 'lighter' | 'moderate' | 'firmer' }))} compact />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="client-flow-actions">
+        {formStep === 1 ? (
+          <button type="button" onClick={onClose} className="secondary-action">Cancel</button>
+        ) : (
+          <button type="button" onClick={() => setFormStep(1)} className="secondary-action">Back</button>
+        )}
+        {formStep === 1 ? (
+          <button type="button" onClick={() => setFormStep(2)} className="primary-action">Continue</button>
+        ) : (
+          <button type="button" onClick={() => { onUpdate({ notes: preferences, focusAreas: focus, contraindications: avoid, temperaturePreference: temperature, communicationPreference: communication, statedPressure: pressure, intakeCompletedAt: Date.now() }); setStage('thanks') }} className="primary-action">Save intake</button>
+        )}
       </div>
-      <button type="button" onClick={() => { onUpdate({ notes: preferences, focusAreas: focus, contraindications: avoid, temperaturePreference: temperature, communicationPreference: communication, statedPressure: pressure, intakeCompletedAt: Date.now() }); setStage('thanks') }} className="primary-action mt-5 w-full">Submit intake</button>
     </div>
+  )
+}
+
+function FlowProgress({ current, labels }: { current: number; labels: string[] }) {
+  return (
+    <ol className="flow-progress" aria-label="Handoff progress">
+      {labels.map((label, index) => (
+        <li key={label} className={index + 1 === current ? 'current' : index + 1 < current ? 'complete' : ''}>
+          <span aria-hidden="true">{index + 1}</span>
+          <strong>{label}</strong>
+        </li>
+      ))}
+    </ol>
   )
 }
 
