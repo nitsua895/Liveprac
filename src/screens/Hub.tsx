@@ -304,9 +304,10 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
   const [temperature, setTemperature] = useState(client.temperaturePreference ?? 'neutral')
   const [communication, setCommunication] = useState(client.communicationPreference ?? 'quiet')
   const [pressure, setPressure] = useState<NonNullable<ClientProfile['statedPressure']>>(() => {
-    if (client.statedPressure) return client.statedPressure
     return Object.fromEntries(
-      BODY_ZONES.filter((zone) => zone !== 'none').map((zone) => [zone, 'moderate']),
+      BODY_ZONES
+        .filter((zone) => zone !== 'none')
+        .map((zone) => [zone, client.statedPressure?.[zone] ?? 'moderate']),
     ) as NonNullable<ClientProfile['statedPressure']>
   })
 
