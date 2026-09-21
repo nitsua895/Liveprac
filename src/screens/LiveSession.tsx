@@ -66,6 +66,7 @@ export function LiveSession() {
   const [outtakeHighlight, setOuttakeHighlight] = useState('')
   const [outtakeNextFocus, setOuttakeNextFocus] = useState('')
   const [planSaved, setPlanSaved] = useState(false)
+  const [confirmingEnd, setConfirmingEnd] = useState(false)
   const cuedSectionRef = useRef<number | null>(null)
   const warnedSectionRef = useRef<number | null>(null)
 
@@ -402,8 +403,7 @@ export function LiveSession() {
             aria-label="End session"
             title="End session"
             onClick={() => {
-              if (!window.confirm('End this session? Recorded feedback will be kept.')) return
-              completeSession()
+              setConfirmingEnd(true)
             }}
             className="session-end-x flex h-11 w-11 items-center justify-center rounded-full border border-red-900/50 text-red-400/70 transition-colors hover:border-red-500/60 hover:text-red-300"
           >
@@ -491,9 +491,7 @@ export function LiveSession() {
             type="button"
             onClick={() => {
               if (nextSection) advanceSection()
-              else if (window.confirm('Finish this session? Recorded feedback will be kept.')) {
-                completeSession()
-              }
+              else setConfirmingEnd(true)
             }}
             className="session-next rounded-full bg-accent-500 px-7 py-4 text-xl font-medium text-white disabled:opacity-30"
           >
@@ -526,6 +524,20 @@ export function LiveSession() {
         <div className="session-more-panel flex flex-wrap justify-center gap-3">
           <button type="button" className="secondary-action" onClick={() => setShowController(false)}>Close</button>
           <RemoteSimulator />
+        </div>
+      )}
+
+      {confirmingEnd && (
+        <div className="modal-backdrop">
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="end-session-title">
+            <p className="section-label">End session</p>
+            <h2 id="end-session-title" className="mt-2 text-2xl font-light text-neutral-100">Finish before the scheduled end time?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-500">Recorded feedback will be kept and you can still complete client checkout and practitioner notes.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setConfirmingEnd(false)} className="secondary-action">Keep session running</button>
+              <button type="button" onClick={() => { setConfirmingEnd(false); completeSession() }} className="rounded-full border border-red-800/70 bg-red-950/35 px-5 py-2 text-sm font-medium text-red-200">End session now</button>
+            </div>
+          </div>
         </div>
       )}
 
