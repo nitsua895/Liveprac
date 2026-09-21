@@ -1203,8 +1203,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   min-height: 0;
   align-items: center;
   justify-content: center;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
   overscroll-behavior: contain;
 }
