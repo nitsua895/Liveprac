@@ -274,7 +274,7 @@ textarea {
   padding-block: 0.5rem;
 }
 @media (orientation: landscape) and (min-height: 600px) and (min-width: 900px) {
-  .session-stage { max-width: 1040px; grid-template-columns: minmax(0, 1fr) minmax(17rem, 19rem); }
+  .session-stage { max-width: 1040px !important; grid-template-columns: minmax(0, 1fr) minmax(17rem, 19rem); }
   .session-dial-column .timer-dial { width: min(40vw, 440px) !important; }
   .session-stage .session-primary-time { font-size: 5rem; }
   .section-timeline p { font-size: 0.9rem; }
@@ -1158,5 +1158,3 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 
 
 /* production deploy trigger: cue/audio polish */
-
-/* production deploy trigger: iPad layout and touch drag */
