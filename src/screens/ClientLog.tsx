@@ -157,6 +157,15 @@ export function ClientLog() {
                   </div>
                   {expanded && (
                     <div className="event-timeline">
+                      <div className="allocation-summary compact">
+                        <p className="launchpad-label">Planned → actual</p>
+                        {record.plannedSections.map((planned, index) => (
+                          <div key={planned.id}>
+                            <span>{planned.name}</span>
+                            <strong>{Math.round(planned.durationSec / 60)}m → {Math.round((record.actualSections[index]?.durationSec ?? 0) / 60)}m</strong>
+                          </div>
+                        ))}
+                      </div>
                       {sessionEvents.length === 0 && <p className="text-sm text-neutral-600">No remote signals during this session.</p>}
                       {sessionEvents.map((event) => (
                         <div key={event.id} className="event-timeline-item">

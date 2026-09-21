@@ -47,6 +47,7 @@ export function LiveSession() {
     logPreferenceEvent,
     pushAmbientCue,
     sessionNotes,
+    sessionRecords,
     setSessionNote,
     recordActiveSessionCompletion,
     setSessionOuttake,
@@ -255,6 +256,7 @@ export function LiveSession() {
     const lovedCount = sessionEvents.filter((e) => e.type === 'loved').length
     const pressureNet = sessionEvents.reduce((sum, event) => event.type === 'pressure_up' ? sum + event.magnitude : event.type === 'pressure_down' ? sum - event.magnitude : sum, 0)
     const note = sessionNotes.find((item) => item.sessionInstanceId === activeSession.instanceId)?.text ?? ''
+    const completedRecord = sessionRecords.find((item) => item.id === activeSession.instanceId)
 
     function finishAndReturn() {
       stopSessionEndChime()
@@ -342,6 +344,17 @@ export function LiveSession() {
               {pressureNet !== 0 && <span>{pressureNet > 0 ? '+' : ''}{pressureNet} pressure</span>}
               {lovedCount > 0 && <span>{lovedCount} loved</span>}
             </div>
+            {completedRecord && (
+              <div className="allocation-summary">
+                <p className="launchpad-label">Planned → actual</p>
+                {completedRecord.plannedSections.map((planned, index) => (
+                  <div key={planned.id}>
+                    <span>{planned.name}</span>
+                    <strong>{Math.round(planned.durationSec / 60)}m → {Math.round((completedRecord.actualSections[index]?.durationSec ?? 0) / 60)}m</strong>
+                  </div>
+                ))}
+              </div>
+            )}
             <textarea value={note} onChange={(event) => setSessionNote(activeSession.instanceId, event.target.value)} placeholder="What should you remember before the next visit?" rows={5} className="closeout-textarea mt-4" autoFocus />
             {client && (
               <button type="button" onClick={() => { saveActiveSessionAsClientPlan(); setPlanSaved(true) }} className={`mt-3 w-full rounded-xl border px-4 py-3 text-sm ${planSaved ? 'border-accent-500/50 bg-accent-500/10 text-accent-200' : 'border-neutral-700 text-neutral-300'}`}>

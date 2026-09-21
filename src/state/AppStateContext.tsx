@@ -455,6 +455,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     const completedAt = Date.now()
     const plannedDurationSec = activeSession.plannedDurationSec
       ?? activeSession.sections.reduce((sum, section) => sum + section.durationSec, 0)
+    const currentElapsedSec = Math.max(0, (completedAt - activeSession.sectionStartedAt) / 1000)
+    const actualSections = activeSession.sections.map((section, index) => ({
+      ...section,
+      durationSec: index < activeSession.currentSectionIndex
+        ? section.durationSec
+        : index === activeSession.currentSectionIndex
+          ? Math.min(section.durationSec, currentElapsedSec)
+          : 0,
+    }))
     const record: SessionRecord = {
       id: activeSession.instanceId,
       clientId: activeSession.clientId,
@@ -464,7 +473,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       completedAt,
       plannedDurationSec,
       plannedSections: (activeSession.plannedSections ?? activeSession.sections).map((section) => ({ ...section })),
-      actualSections: activeSession.sections.map((section) => ({ ...section })),
+      actualSections,
     }
     setSessionRecords((prev) => {
       const existing = prev.find((item) => item.id === record.id)
