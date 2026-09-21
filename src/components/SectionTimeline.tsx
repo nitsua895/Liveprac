@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import type { SectionTemplate } from '../types'
 
 /**
@@ -14,15 +14,13 @@ export function SectionTimeline({
   currentIndex: number
   approaching?: boolean
 }) {
-  const container = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const rail = container.current
-    const target = rail?.children[currentIndex] as HTMLElement | undefined
-    if (!rail || !target) return
-    rail.scrollTo({ left: Math.max(0, target.offsetLeft - rail.offsetLeft - rail.clientWidth / 3), behavior: 'auto' })
-  }, [currentIndex])
   return (
-    <div ref={container} role="list" aria-label="Session timeline" tabIndex={0} className={`section-timeline flex w-full gap-2 overflow-x-auto pb-1 ${sections.length > 6 ? 'many-sections' : ''}`}>
+    <div
+      role="list"
+      aria-label="Session timeline"
+      className="section-timeline w-full pb-1"
+      style={{ '--timeline-columns': Math.min(sections.length, 7) } as CSSProperties}
+    >
       {sections.map((section, index) => {
         const isCurrent = index === currentIndex
         const isNext = index === currentIndex + 1
@@ -47,7 +45,7 @@ export function SectionTimeline({
               }`}
             />
             <p
-              className={`mt-2 w-full truncate text-center text-xs font-medium ${
+              className={`timeline-section-name mt-2 w-full text-center text-xs font-medium ${
                 isCurrent
                   ? 'text-accent-300'
                     : isNext
