@@ -573,14 +573,13 @@ export function Settings() {
         <h1 className="page-title">Settings</h1>
       </header>
 
-      <section className="grid gap-4" aria-labelledby="experience-heading">
-        <h2 id="experience-heading" className="section-label">Session experience</h2>
-        <CueSoundCard />
-        <HomeScreenCard />
-      </section>
+      <details className="settings-group" open>
+        <summary>Appearance</summary>
+        <div className="grid gap-4 pt-3"><AccentPicker /><HomeScreenCard /></div>
+      </details>
       <details className="settings-group">
-        <summary>Appearance & notification customization</summary>
-        <div className="grid gap-4 pt-3"><AccentPicker /><NotificationCuesCard /><SoundsCard /></div>
+        <summary>Sounds & cues</summary>
+        <div className="grid gap-4 pt-3"><CueSoundCard /><SoundsCard /><NotificationCuesCard /></div>
       </details>
       <details className="settings-group">
         <summary>Remotes & connections</summary>
