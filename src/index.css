@@ -257,9 +257,10 @@ textarea {
   grid-template-rows: auto minmax(0, 1fr);
 }
 .section-timeline [data-next='true'] {
-  outline: 1px solid var(--color-accent-400);
-  outline-offset: -1px;
+  outline: 2px solid var(--color-accent-400);
+  outline-offset: -2px;
   background: var(--color-accent-900);
+  box-shadow: 0 0 18px rgb(139 92 246 / 0.18);
 }
 .section-notes {
   max-height: 8rem;
@@ -278,6 +279,7 @@ textarea {
   .session-dial-column .timer-dial { width: min(40vw, 440px) !important; }
   .session-stage .session-primary-time { font-size: 5rem; }
   .section-timeline p { font-size: 0.9rem; }
+  .section-timeline .timeline-section-time { font-size: 0.875rem; }
   .session-stage .section-notes { font-size: 1rem; }
 }
 @media (max-width: 600px) {
@@ -676,6 +678,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   -webkit-line-clamp: 2;
   line-height: 1.125;
 }
+.timeline-section-time {
+  min-height: 1.15rem;
+  line-height: 1.15rem;
+}
 .session-timeline-row {
   display: flex;
   min-width: 0;
@@ -926,8 +932,8 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     flex: 1 1 0;
     width: auto !important;
     height: 100% !important;
-    max-width: min(88vw, 350px);
-    max-height: 350px;
+    max-width: min(88vw, 420px);
+    max-height: 420px;
   }
   .session-dial-with-adjustments {
     width: 100%;
@@ -935,7 +941,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     gap: 0.35rem;
   }
   .session-dial-with-adjustments .timer-dial {
-    width: min(70vw, 350px) !important;
+    width: min(78vw, 420px) !important;
     height: auto !important;
     flex: 0 1 auto;
   }
@@ -948,7 +954,11 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     gap: 0.6rem;
   }
   .up-next-card { grid-area: upnext; }
-  .session-next { grid-area: next; }
+  .session-next {
+    grid-area: next;
+    width: min(100%, 26rem);
+    justify-self: center;
+  }
   .session-extend { grid-area: extend; }
   /* A horizontal scroll strip hides most of the plan behind a swipe on a
      narrow phone. Wrapping into rows keeps every section on screen at once,
