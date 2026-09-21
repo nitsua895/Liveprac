@@ -231,6 +231,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setActiveSession((prev) => {
       if (!prev) return prev
       if (prev.paused) {
+        // Preparing the room is not appointment time. Start both clocks only
+        // when Begin is pressed; subsequent pauses keep the original deadline.
+        if (!prev.started) {
+          const now = Date.now()
+          return { ...prev, started: true, paused: false, pausedAt: null, startedAt: now, sectionStartedAt: now }
+        }
         const pausedMs = prev.pausedAt ? Date.now() - prev.pausedAt : 0
         const result = takeFromFollowingSections(
           prev.sections,
