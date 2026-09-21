@@ -276,9 +276,9 @@ textarea {
 @media (orientation: landscape) and (min-height: 600px) and (min-width: 900px) {
   .session-stage { max-width: 960px; grid-template-columns: minmax(0, 1fr) 18rem; }
   .session-dial-column .timer-dial { width: min(42vw, 430px) !important; }
-  .session-primary-time { font-size: 4.5rem; }
+  .session-stage .session-primary-time { font-size: 4.5rem; }
   .section-timeline p { font-size: 0.9rem; }
-  .section-notes { font-size: 1rem; }
+  .session-stage .section-notes { font-size: 1rem; }
 }
 @media (max-width: 600px) {
   input:not([type='range']), select, textarea { font-size: 16px; }
