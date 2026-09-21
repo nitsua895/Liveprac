@@ -303,7 +303,12 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
   const [avoid, setAvoid] = useState(client.contraindications ?? '')
   const [temperature, setTemperature] = useState(client.temperaturePreference ?? 'neutral')
   const [communication, setCommunication] = useState(client.communicationPreference ?? 'quiet')
-  const [pressure, setPressure] = useState(client.statedPressure ?? {})
+  const [pressure, setPressure] = useState<NonNullable<ClientProfile['statedPressure']>>(() => {
+    if (client.statedPressure) return client.statedPressure
+    return Object.fromEntries(
+      BODY_ZONES.filter((zone) => zone !== 'none').map((zone) => [zone, 'moderate']),
+    ) as NonNullable<ClientProfile['statedPressure']>
+  })
 
   if (stage === 'setup') {
     return (
