@@ -581,7 +581,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   overscroll-behavior-inline: contain;
 }
 .section-timeline.many-sections > div {
-  flex: 0 0 7.5rem;
+  flex: 0 0 8.25rem;
 }
 .session-timeline-row {
   display: flex;
@@ -812,7 +812,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .session-extend { grid-area: extend; }
   .session-more { grid-area: more; }
   .section-timeline > div {
-    flex: 0 0 7rem;
+    flex: 0 0 7.75rem;
   }
 }
 
@@ -1015,7 +1015,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     padding-bottom: 0;
   }
   .section-timeline > div {
-    flex: 0 0 6.5rem;
+    flex: 0 0 7.25rem;
     padding-block: 0.25rem;
   }
   .section-timeline p {
