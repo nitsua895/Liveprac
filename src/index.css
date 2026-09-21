@@ -550,7 +550,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   border-radius: 999px;
   background: var(--color-accent-500);
   padding: 0.65rem 1.15rem;
-  color: rgb(10 10 11);
+  color: white;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -618,6 +618,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   background: rgb(38 38 42 / 0.96);
   opacity: 0.92;
   box-shadow: 0 14px 36px rgb(0 0 0 / 0.42);
+}
+.section-editor-row[data-drop-target='true'] {
+  border-color: var(--color-accent-500);
+  box-shadow: inset 0 0 0 1px var(--color-accent-500), 0 0 0 3px rgb(139 92 246 / 0.12);
 }
 .section-drag { grid-area: drag; }
 .section-body { grid-area: body; }
@@ -714,6 +718,34 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .session-dial-column {
   min-height: 0;
 }
+.session-dial-with-adjustments {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.dial-adjust {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(64 64 64 / 0.9);
+  border-radius: 999px;
+  background: rgb(23 23 25 / 0.72);
+  color: rgb(212 212 216);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+.dial-adjust:hover {
+  border-color: var(--color-accent-500);
+  color: var(--color-accent-200);
+}
+.dial-adjust:disabled {
+  cursor: not-allowed;
+  opacity: 0.28;
+}
 .pressure-slot.empty {
   min-height: 0;
   height: 0;
@@ -786,6 +818,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   text-align: center;
   box-shadow: 0 0 32px 6px var(--cue-border);
 }
+.cue-backdrop {
+  background: rgb(0 0 0 / 0.2);
+  backdrop-filter: brightness(0.78);
+}
 .cue-hold { animation: cue-hold 12s linear forwards; }
 @keyframes cue-hold { 0%, 88.8% { opacity: 1; } 100% { opacity: 0; } }
 .cue-glow { animation: cue-glow 2.4s ease-in-out 5; }
@@ -846,13 +882,22 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     max-width: min(88vw, 350px);
     max-height: 350px;
   }
+  .session-dial-with-adjustments {
+    width: 100%;
+    justify-content: center;
+    gap: 0.35rem;
+  }
+  .session-dial-with-adjustments .timer-dial {
+    width: min(70vw, 350px) !important;
+    height: auto !important;
+    flex: 0 1 auto;
+  }
   .session-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "notes notes"
-      "next next"
-      "extend extend";
+      "next next";
     gap: 0.6rem;
   }
   .up-next-card { grid-area: upnext; }
@@ -1023,8 +1068,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "notes notes"
-      "next next"
-      "extend extend";
+      "next next";
     gap: 0.35rem;
   }
   .up-next-card {
