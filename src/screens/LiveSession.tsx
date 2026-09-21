@@ -168,6 +168,10 @@ export function LiveSession() {
 
   const client = clients.find((c) => c.id === activeSession.clientId)
   const totalDuration = activeSession.plannedDurationSec ?? sessionDurationSec(template.sections)
+  const endsAt = new Date(activeSession.startedAt + totalDuration * 1000).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
   // The appointment clock is the source of truth. A section can pause, but
   // once Begin is pressed the agreed end time never moves.
   const sessionRemainingSec = activeSession.started
@@ -264,10 +268,12 @@ export function LiveSession() {
   return (
     <div className="session-page flex flex-col gap-3 sm:gap-5">
       <header className="session-header flex min-w-0 items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-sm text-neutral-500 sm:text-base">
-          {template.name}
-          {client ? ` · ${client.name}` : ''}
-        </p>
+        <div className="session-identity min-w-0">
+          <p className="truncate text-sm text-neutral-500 sm:text-base">
+            {template.name}{client ? ` · ${client.name}` : ''}
+          </p>
+          <span className="session-ends">Ends {endsAt}</span>
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
