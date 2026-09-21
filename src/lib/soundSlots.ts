@@ -21,11 +21,11 @@ const VOLUME_PREFIX = 'liveprac:v1:soundVolume:'
 const HAS_CUSTOM_PREFIX = 'liveprac:v1:soundCustom:'
 
 const DEFAULT_VOLUME: Record<SoundSlot, number> = {
-  pressure: 60,
-  love: 60,
-  flag: 60,
-  next: 70,
-  sessionEnd: 45,
+  pressure: 55,
+  love: 55,
+  flag: 55,
+  next: 58,
+  sessionEnd: 28,
 }
 
 export function getVolume(slot: SoundSlot): number {
@@ -93,3 +93,4 @@ export async function getCustomSoundUrl(slot: SoundSlot): Promise<string | null>
   urlCache.set(slot, url)
   return url
 }
+

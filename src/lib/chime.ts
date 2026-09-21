@@ -63,7 +63,9 @@ export async function playSessionEndChime(): Promise<void> {
   el.volume = 0
   void el.play().catch(() => {})
 
-  const targetVolume = Math.min(1, Math.max(0, getVolume('sessionEnd') / 100))
+  // The recorded chime has substantially more energy than the synthesized
+  // cue tones, so its slider is intentionally mapped to a quieter ceiling.
+  const targetVolume = Math.min(0.42, Math.max(0, getVolume('sessionEnd') / 100 * 0.42))
   const steps = 30
   let step = 0
   fadeTimer = setInterval(() => {
@@ -79,3 +81,4 @@ export function stopSessionEndChime(): void {
   audio.pause()
   audio.currentTime = 0
 }
+
