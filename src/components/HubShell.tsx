@@ -40,14 +40,14 @@ export function HubShell() {
       <AmbientGlow />
       <OrientationControl />
       {!inSession && <header className="app-topbar border-b border-neutral-900 bg-neutral-950/95 backdrop-blur">
-        <div className={`app-topbar-inner mx-auto flex items-center gap-2 px-1 sm:px-6 lg:px-8 ${inSession ? 'max-w-6xl' : 'max-w-4xl'}`}>
+        <div className="app-topbar-inner mx-auto w-full px-1 sm:px-6 lg:px-8">
           {/* Decorative branding is the first thing to go on a cramped phone
               row — the OS's own status bar clock makes ours redundant there
               too, so both wait for tablet width. */}
           <span className="app-logo hidden shrink-0 text-sm font-medium tracking-tight text-neutral-500 sm:inline">
             Liveprac
           </span>
-          <nav aria-label="Primary" hidden={inSession} className="app-nav flex min-w-0 flex-1 justify-around sm:justify-start sm:gap-2">
+          <nav aria-label="Primary" hidden={inSession} className="app-nav flex min-w-0 justify-around sm:justify-center sm:gap-2">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
@@ -63,7 +63,7 @@ export function HubShell() {
               </NavLink>
             ))}
           </nav>
-          <span className="hidden sm:block">
+          <span className="app-clock-wrap hidden sm:block">
             <AppClock />
           </span>
         </div>
