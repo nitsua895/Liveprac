@@ -125,7 +125,7 @@ export function TodaysAppointments() {
                       <button
                         type="button"
                         onClick={() => beginSession(template.id, linkedClient.id)}
-                        className="rounded-full bg-accent-500 px-4 py-1.5 text-sm font-medium text-neutral-950"
+                        className="rounded-full bg-accent-500 px-4 py-1.5 text-sm font-medium text-white"
                       >
                         Start
                       </button>

@@ -110,9 +110,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   )
   const [clients, setClients] = useState<ClientProfile[]>(() => loadJSON('clients', []))
   const [events, setEvents] = useState<PreferenceEvent[]>(() => loadJSON('events', []))
-  const [activeSession, setActiveSession] = useState<ActiveSession | null>(() =>
-    loadJSON('activeSession', null),
-  )
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(() => {
+    const stored = loadJSON<ActiveSession | null>('activeSession', null)
+    if (!stored) return null
+    const now = Date.now()
+    if (!stored.started) {
+      return { ...stored, started: true, paused: false, pausedAt: null, startedAt: now, sectionStartedAt: now }
+    }
+    if (stored.paused && stored.pausedAt) {
+      return { ...stored, paused: false, pausedAt: null, sectionStartedAt: stored.sectionStartedAt + now - stored.pausedAt }
+    }
+    return stored
+  })
   const [ambientCues, setAmbientCues] = useState<AmbientCue[]>([])
   const [calendarLinks, setCalendarLinks] = useState<CalendarLink[]>(() =>
     loadJSON('calendarLinks', []),
@@ -194,11 +203,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       plannedDurationSec: template.sections.reduce((sum, section) => sum + section.durationSec, 0),
       currentSectionIndex: 0,
       sectionStartedAt: now,
-      // Starts paused: intake/settling-in shouldn't silently eat into the
-      // first section's time. The clock only starts once she hits Resume.
-      paused: true,
-      pausedAt: now,
-      started: false,
+      // A session starts as soon as the client is selected. Its end time is
+      // fixed from this moment onward.
+      paused: false,
+      pausedAt: null,
+      started: true,
     })
     setAmbientCues([])
     // Whatever routine actually got used — updates every time, since it
