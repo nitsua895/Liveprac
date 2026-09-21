@@ -267,7 +267,7 @@ export function LiveSession() {
 
     if (completionView === 'setup') {
       return (
-        <div className="session-complete">
+        <div key={completionView} className="session-complete">
           <div className="completion-card client-handoff-card">
             <p className="completion-step">Client checkout · Secure handoff</p>
             <p className="section-label">Before handing over the iPad</p>
@@ -285,7 +285,7 @@ export function LiveSession() {
 
     if (completionView === 'outtake') {
       return (
-        <div className="session-complete">
+        <div key={completionView} className="session-complete">
           <div className="completion-card client-checkout-card">
             <p className="completion-step">Client checkout</p>
             <p className="section-label">Quick checkout</p>
@@ -312,7 +312,7 @@ export function LiveSession() {
 
     if (completionView === 'thanks' || completionView === 'unlock') {
       return (
-        <div className="session-complete">
+        <div key={completionView} className="session-complete">
           <div className="completion-card client-handoff-card text-center">
             {completionView === 'thanks' ? (
               <>
@@ -340,7 +340,7 @@ export function LiveSession() {
 
     if (completionView === 'closeout') {
       return (
-        <div className="session-complete">
+        <div key={completionView} className="session-complete">
           <div className="completion-card practitioner-closeout">
             <p className="section-label">Practitioner closeout</p>
             <h1 className="mt-2 text-3xl font-light text-neutral-100">Notes for next time</h1>
@@ -374,7 +374,7 @@ export function LiveSession() {
     }
 
     return (
-      <div className="session-complete text-center">
+      <div key={completionView} className="session-complete text-center">
         <div className="completion-choice">
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-400">Session complete</p>
           <h1 className="mt-3 text-3xl font-light text-neutral-100 sm:text-4xl">
