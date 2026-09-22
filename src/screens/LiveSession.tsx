@@ -173,14 +173,24 @@ export function LiveSession() {
     return startMappedGamepadBridge()
   }, [activeSession?.instanceId])
 
-  if (!activeSession) {
-    navigate('/')
-    return null
-  }
+  // Route away from a session that doesn't exist, or one whose data no
+  // longer resolves (a deleted template, corrupted storage), from an
+  // effect rather than during render. Calling navigate()/endSession()
+  // directly in the render body races with React Router's own state
+  // update — on some browsers that leaves the app bouncing between "/"
+  // and "/session" instead of settling on either.
+  useEffect(() => {
+    if (!activeSession) {
+      navigate('/')
+      return
+    }
+    if (!template || !section) {
+      endSession()
+      navigate('/')
+    }
+  }, [activeSession, template, section, navigate, endSession])
 
-  if (!template || !section) {
-    endSession()
-    navigate('/')
+  if (!activeSession || !template || !section) {
     return null
   }
 
