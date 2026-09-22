@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { BodyZoneDiagram } from '../components/BodyZoneDiagram'
-import { BODY_ZONE_LABELS } from '../lib/bodyZones'
+import { BODY_ZONE_LABELS, BODY_ZONES } from '../lib/bodyZones'
 import { pressureInsights } from '../lib/clientInsights'
-import { formatSessionSummary } from '../lib/crm'
+import { formatSessionSummary, OUTTAKE_PRESSURE_LABELS } from '../lib/crm'
 import { formatClock } from '../lib/time'
 import { useAppState } from '../state/AppStateContext'
 import type { SessionRecord } from '../types'
@@ -105,7 +105,7 @@ export function ClientLog() {
               </div>
             </div>
             <div className="client-zone-grid">
-              {(['head_scalp', 'neck_shoulders', 'back', 'arms_hands', 'legs', 'feet'] as const).map((zone) => {
+              {BODY_ZONES.filter((zone) => zone !== 'none').map((zone) => {
                 const observed = insights.find((item) => item.zone === zone)
                 const stated = client.statedPressure?.[zone]
                 return (
@@ -152,7 +152,7 @@ export function ClientLog() {
                     <span>{sessionEvents.length} signals</span>
                     {pressureNet !== 0 && <span className={pressureNet > 0 ? 'text-orange-300' : 'text-sky-300'}>{pressureNet > 0 ? '+' : ''}{pressureNet} pressure</span>}
                     {loved > 0 && <span className="text-red-300">{loved} loved</span>}
-                    {record.outtake?.pressure && <span>Checkout: {record.outtake.pressure === 'right' ? 'just right' : record.outtake.pressure}</span>}
+                    {record.outtake?.pressure && <span>Checkout: {OUTTAKE_PRESSURE_LABELS[record.outtake.pressure]}</span>}
                     <button type="button" onClick={() => setExpandedSessionId(expanded ? null : record.id)} className="ml-auto text-xs text-neutral-500">{expanded ? 'Hide timeline' : 'View timeline'}</button>
                   </div>
                   {expanded && (

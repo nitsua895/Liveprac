@@ -5,6 +5,7 @@ import { RemoteStatusPill } from '../components/RemoteStatusPill'
 import { TodaysAppointments } from '../components/TodaysAppointments'
 import { bluetoothRemote, type BleStatus } from '../lib/bluetoothRemote'
 import { BODY_ZONE_LABELS, BODY_ZONES } from '../lib/bodyZones'
+import { OUTTAKE_PRESSURE_LABELS } from '../lib/crm'
 import { pressureInsights } from '../lib/clientInsights'
 import { getCueSoundMode, primeCueAudio } from '../lib/cueSound'
 import { sessionDurationSec } from '../lib/time'
@@ -16,7 +17,7 @@ import type { ClientProfile } from '../types'
 
 export function Hub() {
   const {
-    templates, clients, events, sessionNotes, addClient, updateClient, startSession, activeSession,
+    templates, clients, events, sessionNotes, sessionRecords, addClient, updateClient, startSession, activeSession,
   } = useAppState()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -60,8 +61,24 @@ export function Hub() {
   const selectedClient = clients.find((client) => client.id === launchClientId)
   const insights = selectedClient ? pressureInsights(selectedClient.id, events, templates) : []
 
+  // The most recent durable session record for this client — the source for
+  // both the practitioner's note and the client's own checkout answers below.
+  // A session record exists even when nothing was pressed on the remote, so
+  // this doesn't miss a quiet session the way a per-event join would.
+  const previousSession = useMemo(() => {
+    if (!launchClientId) return null
+    return sessionRecords
+      .filter((record) => record.clientId === launchClientId)
+      .sort((a, b) => b.startedAt - a.startedAt)[0] ?? null
+  }, [launchClientId, sessionRecords])
+
   const previousSessionNote = useMemo(() => {
     if (!launchClientId) return null
+    if (previousSession) {
+      return sessionNotes.find((note) => note.sessionInstanceId === previousSession.id)?.text.trim() || null
+    }
+    // Fallback for history recorded before session records existed: infer
+    // the most recent session from its preference events instead.
     const latestEventBySession = new Map<string, number>()
     events.filter((event) => event.clientId === launchClientId).forEach((event) => {
       latestEventBySession.set(
@@ -75,7 +92,11 @@ export function Hub() {
         (latestEventBySession.get(b.sessionInstanceId) ?? 0)
         - (latestEventBySession.get(a.sessionInstanceId) ?? 0)
       ))[0]?.text ?? null
-  }, [events, launchClientId, sessionNotes])
+  }, [events, launchClientId, previousSession, sessionNotes])
+
+  // What the client themselves said in their last checkout — separate from
+  // the practitioner's own note above, and otherwise invisible until now.
+  const previousOuttake = previousSession?.outtake ?? null
 
   if (activeSession) return <Navigate to="/session" replace />
 
@@ -206,24 +227,33 @@ export function Hub() {
                     <div className="launchpad-panel">
                       <p className="launchpad-label">Previous session note</p>
                       <p className={previousSessionNote ? 'text-sm leading-relaxed text-neutral-300' : 'text-sm text-neutral-600'}>{previousSessionNote ?? 'No previous note yet'}</p>
+                      {previousOuttake && (previousOuttake.highlight.trim() || previousOuttake.nextFocus.trim() || previousOuttake.pressure) && (
+                        <div className="mt-2 border-t border-neutral-800 pt-2">
+                          <p className="text-xs font-medium uppercase tracking-[0.1em] text-neutral-600">Client said last time</p>
+                          {previousOuttake.pressure && <p className="mt-1 text-sm text-neutral-300">Pressure: {OUTTAKE_PRESSURE_LABELS[previousOuttake.pressure]}</p>}
+                          {previousOuttake.highlight.trim() && <p className="mt-1 text-sm text-neutral-300">Liked: {previousOuttake.highlight}</p>}
+                          {previousOuttake.nextFocus.trim() && <p className="mt-1 text-sm text-neutral-300">Next time: {previousOuttake.nextFocus}</p>}
+                        </div>
+                      )}
                     </div>
 
                     <div className="launchpad-panel launchpad-span">
                       <p className="launchpad-label">Pressure by body zone</p>
-                      {insights.length ? (
-                        <div className="zone-insight-list">
-                          {insights.map((insight) => (
-                            <div key={insight.zone} className="zone-insight">
-                              <BodyZoneDiagram activeZone={insight.zone} size={18} />
-                              <span className="min-w-0 flex-1 truncate text-sm text-neutral-300">{BODY_ZONE_LABELS[insight.zone]}</span>
-                              <span className={`font-mono text-sm font-semibold tabular-nums ${insight.average > 0 ? 'text-orange-300' : insight.average < 0 ? 'text-sky-300' : 'text-neutral-500'}`}>
-                                {insight.average > 0 ? '+' : ''}{insight.average}
+                      <div className="zone-insight-list">
+                        {BODY_ZONES.filter((zone) => zone !== 'none').map((zone) => {
+                          const insight = insights.find((item) => item.zone === zone)
+                          return (
+                            <div key={zone} className="zone-insight">
+                              <BodyZoneDiagram activeZone={zone} size={18} />
+                              <span className="min-w-0 flex-1 truncate text-sm text-neutral-300">{BODY_ZONE_LABELS[zone]}</span>
+                              <span className={`font-mono text-sm font-semibold tabular-nums ${insight && insight.average > 0 ? 'text-orange-300' : insight && insight.average < 0 ? 'text-sky-300' : 'text-neutral-600'}`}>
+                                {insight ? `${insight.average > 0 ? '+' : ''}${insight.average}` : '—'}
                               </span>
-                              <span className="text-xs text-neutral-600">{insight.sessionCount}×</span>
+                              <span className="text-xs text-neutral-600">{insight ? `${insight.sessionCount}×` : 'No data'}</span>
                             </div>
-                          ))}
-                        </div>
-                      ) : <p className="text-sm text-neutral-600">No pressure history yet</p>}
+                          )
+                        })}
+                      </div>
                     </div>
 
                     <div className="launchpad-panel launchpad-span">
@@ -335,7 +365,7 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-500">
           This four-digit screen lock keeps the client inside intake mode. It is a privacy curtain on this iPad, not encrypted account security.
         </p>
-        <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="off" aria-label="New practitioner PIN" placeholder="4-digit PIN" className="client-pin-input" />
+        <input type="password" value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="off" aria-label="New practitioner PIN" placeholder="4-digit PIN" className="client-pin-input" />
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="secondary-action">Cancel</button>
           <button type="button" disabled={pin.length !== 4} onClick={() => { if (setPractitionerPin(pin)) { setPin(''); setStage('form') } }} className="primary-action">Enter client mode</button>
@@ -366,7 +396,7 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
         <div className="client-mode-complete">
         <p className="section-label">Practitioner access</p>
         <h3 className="mt-3 text-2xl font-light text-neutral-100">Enter your PIN to continue</h3>
-        <input value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" autoComplete="off" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
+        <input type="password" value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" autoComplete="off" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
         {pinError && <p className="mt-2 text-sm text-red-400" role="alert">Incorrect PIN</p>}
         <div className="mt-5 flex gap-2">
           <button type="button" onClick={() => { setPin(''); setPinError(false); setStage('thanks') }} className="secondary-action">Back</button>
@@ -421,7 +451,10 @@ function ClientIntakePanel({ client, onUpdate, onClose }: {
       )}
       <div className="client-flow-actions">
         {formStep === 1 ? (
-          <button type="button" onClick={onClose} className="secondary-action">Cancel</button>
+          // Cancelling still has to cross the PIN curtain — otherwise a
+          // client could bail out of intake straight back into the
+          // practitioner's live launchpad, defeating the point of the PIN.
+          <button type="button" onClick={() => setStage('unlock')} className="secondary-action">Cancel</button>
         ) : (
           <button type="button" onClick={() => setFormStep(1)} className="secondary-action">Back</button>
         )}

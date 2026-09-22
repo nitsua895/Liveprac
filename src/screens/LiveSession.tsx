@@ -11,6 +11,7 @@ import { remoteController } from '../lib/remote'
 import { formatClock, sessionDurationSec } from '../lib/time'
 import { acquireWakeLock, reacquireOnVisible, releaseWakeLock } from '../lib/wakeLock'
 import { getPractitionerPin, setPractitionerPin, verifyPractitionerPin } from '../lib/practitionerPin'
+import { OUTTAKE_PRESSURE_LABELS } from '../lib/crm'
 import { useAppState } from '../state/AppStateContext'
 import type { ClientOuttake } from '../types'
 
@@ -269,11 +270,10 @@ export function LiveSession() {
       return (
         <div key={completionView} className="session-complete">
           <div className="completion-card client-handoff-card">
-            <p className="completion-step">Client checkout · Secure handoff</p>
             <p className="section-label">Before handing over the iPad</p>
             <h1 className="mt-2 text-3xl font-light text-neutral-100">Set a practitioner PIN</h1>
             <p className="mt-2 text-sm leading-relaxed text-neutral-500">The client will stay inside checkout mode until this four-digit PIN is entered.</p>
-            <input value={returnPin} onChange={(event) => setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" aria-label="New practitioner PIN" placeholder="4-digit PIN" className="client-pin-input" />
+            <input type="password" value={returnPin} onChange={(event) => setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" aria-label="New practitioner PIN" placeholder="4-digit PIN" className="client-pin-input" />
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setCompletionView('choice')} className="secondary-action">Back</button>
               <button type="button" disabled={returnPin.length !== 4} onClick={() => { if (setPractitionerPin(returnPin)) { setReturnPin(''); setCompletionView('outtake') } }} className="primary-action">Enter client mode</button>
@@ -287,13 +287,12 @@ export function LiveSession() {
       return (
         <div key={completionView} className="session-complete">
           <div className="completion-card client-checkout-card">
-            <p className="completion-step">Client checkout</p>
             <p className="section-label">Quick checkout</p>
             <h1 className="mt-2 text-3xl font-light text-neutral-100">How did that feel?</h1>
             <div className="mt-6">
               <p className="launchpad-label">Overall pressure</p>
               <div className="segmented">
-                {(['lighter', 'right', 'firmer'] as const).map((value) => <button key={value} type="button" onClick={() => setOuttakePressure(value)} className={outtakePressure === value ? 'selected' : ''}>{value === 'right' ? 'Just right' : value}</button>)}
+                {(['lighter', 'right', 'firmer'] as const).map((value) => <button key={value} type="button" onClick={() => setOuttakePressure(value)} className={outtakePressure === value ? 'selected' : ''}>{OUTTAKE_PRESSURE_LABELS[value]}</button>)}
               </div>
             </div>
             <label className="mt-4 block">
@@ -325,7 +324,7 @@ export function LiveSession() {
               <>
                 <p className="section-label">Practitioner access</p>
                 <h1 className="mt-3 text-2xl font-light text-neutral-100">Enter your PIN to continue</h1>
-                <input value={returnPin} onChange={(event) => { setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
+                <input type="password" value={returnPin} onChange={(event) => { setReturnPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false) }} inputMode="numeric" aria-label="Practitioner PIN" placeholder="PIN" className="client-pin-input" />
                 {pinError && <p className="mt-2 text-sm text-red-400" role="alert">Incorrect PIN</p>}
                 <div className="mt-5 flex justify-center gap-2">
                   <button type="button" onClick={() => { setReturnPin(''); setPinError(false); setCompletionView('thanks') }} className="secondary-action">Back</button>
@@ -359,6 +358,14 @@ export function LiveSession() {
                     <strong>{Math.round(planned.durationSec / 60)}m → {Math.round((completedRecord.actualSections[index]?.durationSec ?? 0) / 60)}m</strong>
                   </div>
                 ))}
+              </div>
+            )}
+            {completedRecord?.outtake && (completedRecord.outtake.pressure || completedRecord.outtake.highlight.trim() || completedRecord.outtake.nextFocus.trim()) && (
+              <div className="launchpad-panel mt-3">
+                <p className="launchpad-label">Client said at checkout</p>
+                {completedRecord.outtake.pressure && <p className="mt-1 text-sm text-neutral-300">Overall pressure: {OUTTAKE_PRESSURE_LABELS[completedRecord.outtake.pressure]}</p>}
+                {completedRecord.outtake.highlight.trim() && <p className="mt-1 text-sm text-neutral-300">What felt helpful: {completedRecord.outtake.highlight}</p>}
+                {completedRecord.outtake.nextFocus.trim() && <p className="mt-1 text-sm text-neutral-300">Focus next time: {completedRecord.outtake.nextFocus}</p>}
               </div>
             )}
             <textarea value={note} onChange={(event) => setSessionNote(activeSession.instanceId, event.target.value)} placeholder="What should you remember before the next visit?" rows={5} className="closeout-textarea mt-4" />

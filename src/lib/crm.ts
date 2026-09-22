@@ -1,4 +1,12 @@
-import type { ClientProfile, PreferenceEvent, SessionTemplate } from '../types'
+import type { ClientOuttake, ClientProfile, PreferenceEvent, SessionTemplate } from '../types'
+
+/** Shared between the checkout question and every place that later displays
+ *  its answer, so the two can't drift into mismatched wording. */
+export const OUTTAKE_PRESSURE_LABELS: Record<NonNullable<ClientOuttake['pressure']>, string> = {
+  lighter: 'Too light',
+  right: 'Just right',
+  firmer: 'Too firm',
+}
 
 /**
  * ClinicSense and MassageBook don't publish a public API for third-party
