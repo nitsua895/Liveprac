@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useRef } from 'react'
 import type { SectionTemplate } from '../types'
 
 /**
@@ -14,12 +14,34 @@ export function SectionTimeline({
   currentIndex: number
   approaching?: boolean
 }) {
+  const railRef = useRef<HTMLDivElement>(null)
+
+  // Only matters when the plan overflows (very long plans, or the
+  // single-row strip on a sideways phone). Adjusts the timeline's own
+  // scroll offset rather than calling scrollIntoView, which would also
+  // scroll the page around it.
+  useEffect(() => {
+    const rail = railRef.current
+    if (!rail) return
+    function keepCurrentInView() {
+      const item = rail?.children[currentIndex] as HTMLElement | undefined
+      if (!rail || !item) return
+      const railBox = rail.getBoundingClientRect()
+      const itemBox = item.getBoundingClientRect()
+      if (rail.scrollHeight > rail.clientHeight) rail.scrollTop += itemBox.top - railBox.top
+      if (rail.scrollWidth > rail.clientWidth) rail.scrollLeft += itemBox.left - railBox.left
+    }
+    keepCurrentInView()
+    window.addEventListener('resize', keepCurrentInView)
+    return () => window.removeEventListener('resize', keepCurrentInView)
+  }, [currentIndex, sections.length])
+
   return (
     <div
+      ref={railRef}
       role="list"
       aria-label="Session timeline"
       className="section-timeline w-full pb-1"
-      style={{ '--timeline-columns': Math.min(sections.length, 7) } as CSSProperties}
     >
       {sections.map((section, index) => {
         const isCurrent = index === currentIndex

@@ -477,12 +477,12 @@ export function LiveSession() {
               strokeWidth={12}
               markers={dialMarkers}
             >
-              <BodyZoneDiagram activeZone={section.bodyZone} size={42} />
-              <span className="mt-1 max-w-60 text-center text-lg font-semibold text-accent-200">
-                {section.name}
+              <span className="dial-zone">
+                <BodyZoneDiagram activeZone={section.bodyZone} size={42} />
               </span>
+              <span className="dial-section-name">{section.name}</span>
               <span
-                className={`session-primary-time mt-1 font-mono tabular-nums ${
+                className={`session-primary-time font-mono tabular-nums ${
                   displayedSectionRemainingSec < 0 ? 'text-red-400' : 'text-neutral-50'
                 }`}
               >
